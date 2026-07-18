@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Job Log">
+<title>Job Log — Abyana</title>
+<style>
+  :root {
+    --ink: #1a1f1c;
+    --paper: #f6f4ee;
+    --card: #ffffff;
+    --line: #e2ddd0;
+    --accent: #2f5744;
+    --accent-dark: #234233;
+    --accent-soft: #e4ece6;
+    --amber: #b3611a;
+    --amber-soft: #fbeee0;
+    --muted: #706a5c;
+    --danger: #b3261e;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0; padding: 0; background: var(--paper); color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overscroll-behavior-y: none;
+  }
+  header {
+    position: sticky; top: 0; z-index: 20;
+    background: var(--accent); color: #f5f3ec;
+    padding: 16px 18px 14px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+  }
+  header h1 { margin: 0; font-size: 1.15rem; font-weight: 800; letter-spacing: -0.01em; }
+  header p { margin: 3px 0 0; font-size: 0.78rem; opacity: 0.85; }
+
+  main { max-width: 520px; margin: 0 auto; padding: 16px 14px 100px; }
+
+  .section-label {
+    font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em;
+    color: var(--muted); margin: 22px 4px 10px;
+  }
+  .section-label:first-child { margin-top: 4px; }
+
+  /* Screen 1: entry form */
+  #entryScreen.hidden, #logScreen.hidden { display: none; }
+  .save-bar.hidden { display: none; }
+  .help-overlay.hidden { display: none; }
+  .help-overlay {
+    position: fixed; inset: 0; background: rgba(20,24,20,0.55); z-index: 40;
+    display: flex; align-items: flex-end; justify-content: center;
+  }
+  .help-card {
+    background: var(--paper); width: 100%; max-width: 520px; max-height: 82vh;
+    border-radius: 18px 18px 0 0; display: flex; flex-direction: column;
+    box-shadow: 0 -4px 24px rgba(0,0,0,0.2);
+  }
+  .help-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 18px 18px 12px; border-bottom: 1px solid var(--line); flex-shrink: 0;
+  }
+  .help-header h2 { margin: 0; font-size: 1.05rem; font-weight: 800; color: var(--accent-dark); }
+  .help-close {
+    background: var(--accent); color: #fff; border: none; border-radius: 20px;
+    padding: 8px 16px; font-weight: 700; font-size: 0.85rem; cursor: pointer;
+  }
+  .help-body { overflow-y: auto; padding: 14px 18px 28px; }
+  .help-item { margin-bottom: 18px; }
+  .help-q { font-weight: 700; font-size: 0.92rem; color: var(--ink); margin-bottom: 4px; }
+  .help-a { font-size: 0.85rem; color: #454c46; line-height: 1.55; }
+
+  .site-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+  }
+  .site-btn {
+    background: var(--card); border: 2px solid var(--line); border-radius: 12px;
+    padding: 14px 10px; font-size: 0.92rem; font-weight: 700; color: var(--ink);
+    text-align: left; line-height: 1.25; cursor: pointer;
+    min-height: 58px; display: flex; align-items: center;
+  }
+  .site-btn.selected { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-dark); }
+  .site-btn.other-btn { grid-column: 1 / -1; text-align: center; justify-content: center; color: var(--muted); }
+
+  .other-input {
+    margin-top: 8px; width: 100%; padding: 16px; font-size: 1rem; border-radius: 12px;
+    border: 2px solid var(--line); font-family: inherit; display: none;
+  }
+  .other-input.shown { display: block; }
+
+  .search-wrap { margin-top: 10px; position: relative; }
+  .search-input {
+    width: 100%; padding: 14px 16px; font-size: 0.95rem; border-radius: 12px;
+    border: 2px solid var(--line); font-family: inherit; background: var(--card);
+  }
+  .search-results { margin-top: 6px; display: flex; flex-direction: column; gap: 6px; }
+  .search-result-btn {
+    background: var(--card); border: 2px solid var(--line); border-radius: 10px;
+    padding: 12px 14px; font-size: 0.9rem; font-weight: 600; color: var(--ink);
+    text-align: left; cursor: pointer; width: 100%;
+  }
+  .search-result-btn.selected { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-dark); }
+  .search-hint { font-size: 0.76rem; color: var(--muted); margin: 6px 2px 0; }
+
+  .field-row { display: flex; gap: 10px; margin-top: 4px; }
+  .field {
+    flex: 1; padding: 16px; font-size: 1.1rem; border-radius: 12px;
+    border: 2px solid var(--line); font-family: inherit; background: var(--card);
+  }
+  .field:focus, .other-input:focus, textarea:focus { outline: none; border-color: var(--accent); }
+
+  textarea#taskDesc {
+    width: 100%; min-height: 120px; padding: 16px; font-size: 1.05rem; border-radius: 12px;
+    border: 2px solid var(--line); font-family: inherit; resize: vertical; background: var(--card);
+    line-height: 1.5;
+  }
+  .mic-hint {
+    display: flex; align-items: center; gap: 8px; margin-top: 8px;
+    font-size: 0.8rem; color: var(--muted); padding: 0 2px;
+  }
+  .mic-hint svg { flex-shrink: 0; }
+
+  .price-hint {
+    font-size: 0.76rem; color: var(--muted); margin: 8px 2px 0;
+  }
+  .task-hint { font-size: 0.76rem; color: var(--muted); margin: 6px 2px 0; line-height: 1.4; }
+  .addr-note { font-weight: 400; text-transform: none; letter-spacing: normal; font-size: 0.72rem; }
+  #queuedTasksWrap { margin-top: 4px; }
+  .queued-task {
+    background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+    padding: 10px 12px; margin-bottom: 6px; font-size: 0.85rem; display: flex; justify-content: space-between; gap: 10px;
+  }
+  .queued-task .qtext { flex: 1; line-height: 1.4; }
+  .queued-task .qprice { font-size: 0.72rem; color: var(--muted); margin-top: 2px; }
+  .queued-task .qremove { color: var(--danger); font-weight: 700; background: none; border: none; font-size: 0.78rem; cursor: pointer; flex-shrink: 0; }
+
+  .save-bar {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 20;
+    background: var(--paper); border-top: 1px solid var(--line);
+    padding: 12px 14px calc(12px + env(safe-area-inset-bottom));
+    display: flex; gap: 10px;
+    max-width: 520px; margin: 0 auto;
+  }
+  button.primary {
+    flex: 1; background: var(--accent); color: #fff; border: none; border-radius: 14px;
+    padding: 17px; font-size: 1.05rem; font-weight: 800; cursor: pointer;
+  }
+  button.primary:active { background: var(--accent-dark); }
+  button.secondary {
+    background: var(--card); color: var(--accent); border: 2px solid var(--accent);
+    border-radius: 14px; padding: 17px 18px; font-size: 1.05rem; font-weight: 800; cursor: pointer;
+  }
+  button.primary:disabled { background: #c9c3b3; cursor: not-allowed; }
+
+  .nav-tabs {
+    display: flex; gap: 8px; margin-bottom: 4px;
+  }
+  .nav-tab {
+    flex: 1; padding: 10px; text-align: center; border-radius: 10px; font-size: 0.85rem;
+    font-weight: 700; color: var(--muted); background: transparent; border: none; cursor: pointer;
+  }
+  .nav-tab.active { background: var(--card); color: var(--accent); box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+
+  /* Screen 2: log list */
+  .log-card {
+    background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+    padding: 14px 16px; margin-bottom: 10px;
+  }
+  .log-card .top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+  .log-card .client { font-weight: 800; font-size: 0.95rem; color: var(--accent-dark); }
+  .log-card .unit { font-size: 0.72rem; font-weight: 700; background: var(--accent-soft); color: var(--accent-dark);
+    padding: 3px 8px; border-radius: 20px; white-space: nowrap; }
+  .log-card .desc { font-size: 0.86rem; margin-top: 6px; color: #3c443e; line-height: 1.4; white-space: pre-wrap; }
+  .log-card .task-price { font-size: 0.72rem; color: var(--muted); margin-top: 2px; }
+  .log-card .meta { font-size: 0.72rem; color: var(--muted); margin-top: 8px; display: flex; justify-content: space-between; }
+  .log-card .delete-btn { color: var(--danger); font-weight: 700; background: none; border: none; font-size: 0.78rem; cursor: pointer; padding: 0; }
+  .known-badge { font-size: 0.65rem; font-weight: 700; color: var(--accent); background: var(--accent-soft); padding: 2px 7px; border-radius: 10px; vertical-align: middle; }
+  .new-badge { font-size: 0.65rem; font-weight: 700; color: var(--amber); background: var(--amber-soft); padding: 2px 7px; border-radius: 10px; vertical-align: middle; }
+
+  .empty-state { text-align: center; padding: 60px 20px; color: var(--muted); }
+  .empty-state svg { margin-bottom: 12px; opacity: 0.4; }
+  .empty-state p { font-size: 0.9rem; margin: 4px 0; }
+
+  .export-box {
+    background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px;
+  }
+  .export-box textarea {
+    width: 100%; min-height: 160px; font-family: ui-monospace, SFMono-Regular, monospace;
+    font-size: 0.78rem; border: 1px solid var(--line); border-radius: 8px; padding: 10px;
+    background: #fafaf7; color: #3c443e; line-height: 1.5;
+  }
+  .toast {
+    position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%);
+    background: var(--accent-dark); color: #fff; padding: 10px 18px; border-radius: 24px;
+    font-size: 0.85rem; font-weight: 700; z-index: 30; opacity: 0; transition: opacity 0.2s;
+    pointer-events: none;
+  }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<header>
+  <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+    <div>
+      <h1>Job Log</h1>
+      <p id="headerSub">Tap a building, add the unit, say what you did.</p>
+    </div>
+    <button id="helpBtn" style="background:rgba(255,255,255,0.15); border:none; color:#fff; width:34px; height:34px; border-radius:50%; font-size:1rem; font-weight:800; flex-shrink:0; cursor:pointer;">?</button>
+  </div>
+</header>
+
+<main>
+  <div id="entryScreen">
+    <div class="nav-tabs">
+      <button class="nav-tab active" id="tabNew">New Entry</button>
+      <button class="nav-tab" id="tabLog">Logged (<span id="countBadge">0</span>)</button>
+    </div>
+
+    <div class="section-label">Building / Client</div>
+    <div class="site-grid" id="siteGrid"></div>
+
+    <div class="search-wrap" id="searchWrap">
+      <input type="text" class="search-input" id="searchInput" placeholder="Not one of those? Search other regulars…" autocomplete="off" autocorrect="off">
+      <div class="search-results" id="searchResults"></div>
+    </div>
+
+    <input type="text" class="other-input" id="otherInput" placeholder="Type the client/building name">
+
+    <div class="section-label">Unit # (leave blank if none)</div>
+    <div class="field-row">
+      <input type="text" inputmode="numeric" class="field" id="unitField" placeholder="e.g. 407">
+    </div>
+
+    <div class="section-label">Property address <span class="addr-note">(only edit if today's job is at a different address than usual for this client)</span></div>
+    <div class="field-row">
+      <input type="text" class="field" id="addressField" placeholder="Fills in automatically once you pick a building">
+    </div>
+
+    <div class="section-label">What did you do?</div>
+    <textarea id="taskDesc" placeholder="Tap here, then tap the microphone on your keyboard and just talk. Say the room, what was broken, what you fixed."></textarea>
+    <div class="mic-hint">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+      <span>Use your keyboard's mic button to talk instead of typing</span>
+    </div>
+
+    <div class="section-label">Labor $, if you already know it</div>
+    <div class="field-row">
+      <input type="text" inputmode="decimal" class="field" id="laborField" placeholder="Leave blank if unsure">
+    </div>
+
+    <div class="section-label">Materials $, if you already know it</div>
+    <div class="field-row">
+      <input type="text" inputmode="decimal" class="field" id="materialsField" placeholder="Leave blank if unsure">
+    </div>
+    <div class="price-hint">Service Call is added automatically — no need to log that part. Not sure on Labor or Materials? Leave them blank, price it later in Jobber.</div>
+
+    <button class="secondary" id="addTaskBtn" style="width:100%; margin-top:14px;" disabled>+ Add Another Task (same visit)</button>
+    <div class="task-hint">Did more than one thing at this building today? Add each as its own task before saving — they'll all go on one invoice, just like Diego already does it.</div>
+
+    <div id="queuedTasksWrap" style="display:none;">
+      <div class="section-label">Tasks on this visit (<span id="taskCount">0</span>)</div>
+      <div id="queuedTasksList"></div>
+    </div>
+  </div>
+
+  <div id="logScreen" class="hidden">
+    <div class="nav-tabs">
+      <button class="nav-tab" id="tabNew2">New Entry</button>
+      <button class="nav-tab active" id="tabLog2">Logged (<span id="countBadge2">0</span>)</button>
+    </div>
+    <div id="logList"></div>
+    <div class="section-label" id="exportLabel" style="display:none;">Or copy as text (for a quick message to David)</div>
+    <div class="export-box" id="exportBox" style="display:none;">
+      <textarea id="exportText" readonly></textarea>
+      <button class="secondary" id="copyBtn" style="margin-top:10px; width:100%;">Copy Text</button>
+    </div>
+    <div class="section-label" id="jobberLabel" style="display:none;">Ready to import (matched clients only)</div>
+    <button class="primary" id="jobberCsvBtn" style="display:none; width:100%; margin-bottom:10px;">Jobber Import CSV (for David)</button>
+  </div>
+</main>
+
+<div id="helpOverlay" class="help-overlay hidden">
+  <div class="help-card">
+    <div class="help-header">
+      <h2>If something's not working</h2>
+      <button id="closeHelp" class="help-close">Done</button>
+    </div>
+    <div class="help-body">
+
+      <div class="help-item">
+        <div class="help-q">The app looks empty / my logged jobs are gone</div>
+        <div class="help-a">This almost always means you opened a different copy of the page than usual (a new link, or "Add to Home Screen" a second time). Your data lives on <em>this specific</em> installed icon, not the internet — if you tap a different link, it looks empty because it's a different copy.<br><br><strong>Fix:</strong> go back to the same home screen icon you've always used. Don't delete it and reinstall unless David tells you to.</div>
+      </div>
+
+      <div class="help-item">
+        <div class="help-q">Copy Text button doesn't seem to do anything</div>
+        <div class="help-a">Some phones block copying until you allow it once. Look for a small pop-up asking to allow pasting — tap Allow. If nothing happens at all, use the <strong>Download CSV</strong> button instead — it always works, saves a file, and does the same job.</div>
+      </div>
+
+      <div class="help-item">
+        <div class="help-q">The building I need isn't in the list</div>
+        <div class="help-a">Tap <strong>"+ Other / new building"</strong> and type it in. It's completely fine — David just has to manually match it to Jobber later instead of it happening automatically. Don't skip logging the job over this.</div>
+      </div>
+
+      <div class="help-item">
+        <div class="help-q">I did more than one thing at the same building</div>
+        <div class="help-a">Fill in the first task, tap <strong>"+ Add Another Task"</strong> instead of Save, then fill in the next one. Tap Save Visit only once, after everything for that stop is entered — it'll all go on one invoice, same as you'd do it yourself.</div>
+      </div>
+
+      <div class="help-item">
+        <div class="help-q">I made a mistake on something I already saved</div>
+        <div class="help-a">Go to the "Logged" tab, find the entry, tap <strong>Delete</strong>, then re-enter it correctly. There's no edit button on purpose — deleting and redoing is faster and can't leave old wrong info behind by accident.</div>
+      </div>
+
+      <div class="help-item">
+        <div class="help-q">Something's broken and none of this helped</div>
+        <div class="help-a">Text David. Tell him exactly what you tapped and what happened (or didn't happen) — a screenshot helps a lot if you can grab one. He doesn't need you to explain it perfectly, just what you were doing right before it went wrong.</div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+document.getElementById('helpBtn').onclick = () => {
+  document.getElementById('helpOverlay').classList.remove('hidden');
+};
+document.getElementById('closeHelp').onclick = () => {
+  document.getElementById('helpOverlay').classList.add('hidden');
+};
+</script>
+
+<div class="save-bar" id="entrySaveBar">
+  <button class="secondary" id="clearBtn">Clear</button>
+  <button class="primary" id="saveBtn" disabled>Save Visit</button>
+</div>
+<div class="save-bar hidden" id="logSaveBar">
+  <button class="secondary" id="clearAllBtn">Clear All</button>
+  <button class="primary" id="csvBtn">Download CSV</button>
+</div>
+
+<div class="toast" id="toast">Saved</div>
+
+<script>
+const SITE_INFO = {
+  "Montana": {clientId:"50238785", clientName:"4310 Montana", street1:"1160 Pendrell Street", city:"Vancouver", state:"British Columbia", zip:"V6E 1L5"},
+  "Esticana": {clientId:"50229514", clientName:"4090 Esticana", street1:"1234 Barclay Street", city:"Vancouver", state:"British Columbia", zip:"V6E 1H4"},
+  "Haro St Limited Partnership": {clientId:"94379459", clientName:"1045 Haro St Limited Partnership", street1:"1045 Haro Street", city:"Vancouver", state:"British Columbia", zip:"V6E 3Z8"},
+  "Aspen": {clientId:"116432459", clientName:"0492 Aspen. c/o Catalyst Cummunity Developments Society.", street1:"188 East 6th Avenue", city:"Vancouver", state:"British Columbia", zip:"V5T 0K3"},
+  "EI Presidente": {clientId:"50229489", clientName:"4070 EI Presidente", street1:"1521 Burnaby Street", city:"Vancouver", state:"British Columbia", zip:"V6G 1X1"},
+  "Basra Bros Investment": {clientId:"90404665", clientName:"Basra Bros Investment Ltd.", street1:"2641 East 29th Avenue", city:"Vancouver", state:"British Columbia", zip:"V5R 1V3"},
+  "Joanne Wu": {clientId:"116521242", clientName:"Joanne Wu", street1:"3360 Price Street", city:"Vancouver", state:"British Columbia", zip:"V5R 5P9"},
+  "Johnston Plaza": {clientId:"71541739", clientName:"B07372    Johnston Plaza", street1:"1724 152 Street", city:"Surrey", state:"British Columbia", zip:"V4A 4N4"},
+  "W8 Living": {clientId:"50390980", clientName:"B00005 W8 Living", street1:"1463 West 8th Avenue", city:"Vancouver", state:"British Columbia", zip:"V6H 0C3"},
+  "Vallejo Court": {clientId:"50239308", clientName:"Vallejo Court", street1:"1009 West 10th Avenue", city:"Vancouver", state:"British Columbia", zip:"V6H 1H9"},
+  "Dorchester Apartments": {clientId:"50227095", clientName:"Dorchester Apartments", street1:"170 5th Street East", city:"North Vancouver", state:"British Columbia", zip:"V7L 4L4"},
+  "Sharion Apartments": {clientId:"50196347", clientName:"1339 Sharion Apartments", street1:"1339 Barclay Street", city:"Vancouver", state:"British Columbia", zip:"V6E 1H6"},
+  "Camelot Place": {clientId:"50202810", clientName:"B00010 Camelot Place", street1:"6508 Silver Avenue", city:"Burnaby", state:"British Columbia", zip:"V5H 2Y4"},
+  "City View Apartments": {clientId:"50229421", clientName:"3720 City View Apartments", street1:"Unit 119 City View", city:"Vancouver", state:"British Columbia", zip:"V6E 1C8"},
+  "LJ Hum": {clientId:"50471270", clientName:"LJ Hum", street1:"6692 Dow Avenue", city:"Burnaby,", state:"BC", zip:"V5H3C9"},
+  "Odd Fellows Low Rental Housing Society Inc": {clientId:"68744413", clientName:"Odd Fellows Low Rental Housing Society Inc.  c/o AWM- Alliance Real State Group Ltd.", street1:"5281 Lincoln Street", city:"Vancouver", state:"British Columbia", zip:"V5R 4P5"},
+  "Mayfair Court / Wayne & National": {clientId:"74298016", clientName:"Mayfair Court / Wayne & National", street1:"8071 Ryan Road", city:"Richmond", state:"British Columbia", zip:"V7A 2E4"},
+  "Oxford Manor": {clientId:"50239384", clientName:"Oxford Manor", street1:"2333 Oxford Street", city:"Vancouver", state:"British Columbia", zip:"V5L 1G5"},
+  "Devon - Cardero St / E 41st Ave": {clientId:"112812683", clientName:"Devon Properties LTD", street1:"1181 Cardero Street", city:"Vancouver", state:"BC", zip:""},
+  "Devon - Davie St (West Tower)": {clientId:"112812907", clientName:"Devon Properties LTD.", street1:"1661 Davie Street", city:"Vancouver", state:"BC", zip:""},
+  "Devon - Victoria Dr": {clientId:"50240468", clientName:"Devon Properties LTD", street1:"3655  Victoria Dr.", city:"Vancouver", state:"BC", zip:""},
+  "7392 16th Ave (Catalyst)": {clientId:"115665634", clientName:"0442 -  7392 16th Avenue, Burnaby C/o Catalyst Cummunity Developments Society.", street1:"7392 16th Avenue", city:"Burnaby", state:"British Columbia", zip:"V3N 0K3"}
+};
+const SITES = Object.keys(SITE_INFO);
+
+const REGULARS_INFO = {
+  "Strata Plan LMS0970, C/O Ascent": {clientId:"90805408", clientName:"Strata Plan  LMS0970, C/O Ascent", street1:"7501 Cumberland Street", city:"Burnaby", state:"British Columbia", zip:"V3N 4Y6"},
+  "Fair Haven Homes Mckay Apartments Society": {clientId:"117966970", clientName:"Fair Haven Homes Mckay Apartments Society", street1:"4351 Rumble Street", city:"Burnaby", state:"British Columbia", zip:"V5J 2A4"},
+  "Alder": {clientId:"73064918", clientName:"Alder", street1:"3625 East Sawmill Crescent", city:"Vancouver", state:"British Columbia", zip:"V5S 0J6"},
+  "Manhattan Apartments": {clientId:"75639153", clientName:"B00017.      Manhattan Apartments.", street1:"825 East 8th Avenue", city:"Vancouver", state:"British Columbia", zip:"V5T 1T6"},
+  "Mountain View": {clientId:"61093821", clientName:"B00007    Mountain View", street1:"1110 King Albert Avenue", city:"Coquitlam", state:"British Columbia", zip:"V3J 0M7"},
+  "BC Property Development Council of the United": {clientId:"84758827", clientName:"BC Property Development Council  of the United Church of Canada.", street1:"529 Queens Avenue", city:"New Westminster", state:"British Columbia", zip:"V3L 1K2"},
+  "La Venta": {clientId:"50390996", clientName:"B00009 La Venta", street1:"6470 Silver Avenue", city:"Burnaby", state:"British Columbia", zip:"V5H 2Y4"},
+  "Telford Avenue, Burnaby": {clientId:"113325655", clientName:"6521 Telford Avenue, Burnaby", street1:"6521 Telford Avenue", city:"Burnaby", state:"British Columbia", zip:"V5H 0K8"},
+  "Helmcken Hamilton Coffee Inc. dba Analog Coff": {clientId:"74581717", clientName:"Helmcken Hamilton Coffee Inc. dba Analog Coffee", street1:"338 Helmcken Street", city:"Vancouver", state:"British Columbia", zip:"V6B 6C5"},
+  "13318 104th Ave": {clientId:"120343866", clientName:"B10018 1405 - 13318 104th Ave", street1:"13318 104 Avenue", city:"Surrey", state:"British Columbia", zip:"V3T 0R2"},
+  "Blair House Apartments": {clientId:"63497263", clientName:"Blair House Apartments", street1:"10100 No. 3 Road", city:"Richmond", state:"British Columbia", zip:"V7A 1G5"},
+  "Pat Rose Place": {clientId:"50239935", clientName:"6612 Pat Rose Place", street1:"1218 Burnaby Street", city:"Vancouver", state:"British Columbia", zip:"V6E 1P5"},
+  "410 - Rivermark C/o Catalyst Cummunity Develo": {clientId:"50240442", clientName:"410  - Rivermark  C/o Catalyst Cummunity Developments Society.", street1:"6968 Pearson Way", city:"Richmond", state:"British Columbia", zip:"V7C 4N3"},
+  "Vancouver Masonic Centre": {clientId:"53179871", clientName:"B07911 Vancouver Masonic Centre", street1:"1463 West 8th Avenue", city:"Vancouver", state:"British Columbia", zip:"V6H 0C3"},
+  "555 jervis Street, Vancouver": {clientId:"127851233", clientName:"1307 - 555 jervis Street, Vancouver", street1:"555 Jervis Street", city:"Vancouver", state:"British Columbia", zip:"V6C 3P8"},
+  "Royal Oak": {clientId:"136006694", clientName:"6889 Royal Oak", street1:"6889 Royal Oak Avenue", city:"Burnaby", state:"British Columbia", zip:"V5J 0K4"},
+  "Residences on 7th": {clientId:"107205165", clientName:"B06628 Residences on 7th", street1:"228 East 7th Avenue", city:"Vancouver", state:"British Columbia", zip:"V5T 0A1"},
+  "Habitat Property Management ITF Kits Walk": {clientId:"50390928", clientName:"Habitat Property Management Ltd ITF Kits Walk", street1:"2075 West 12th Avenue", city:"Vancouver", state:"British Columbia", zip:"V6J 2G3"},
+  "1480 Howe Street": {clientId:"84456890", clientName:"B08703  2105 - 1480 Howe Street", street1:"1480 Howe Street", city:"Vancouver", state:"British Columbia", zip:"V6Z 0G5"},
+  "VR1103 - 3305/ 3309 Mountain Highway, North V": {clientId:"95580805", clientName:"VR1103 -  3305/ 3309 Mountain Highway, North Vancouver", street1:"3291 Mountain Highway", city:"North Vancouver", state:"British Columbia", zip:"V7K 2H4"},
+  "The Grange": {clientId:"50239237", clientName:"The Grange", street1:"1395 West 14th Avenue", city:"Vancouver", state:"British Columbia", zip:"V6H 1R2"},
+  "Sojourn Co-op": {clientId:"70664561", clientName:"Sojourn Co-op", street1:"1763 Nelson Street", city:"Vancouver", state:"British Columbia", zip:"V6G 1M6"},
+  "East 7th Avenue, Vancouver": {clientId:"89708008", clientName:"B08507  1435 East 7th Avenue, Vancouver", street1:"1435 East 7th Avenue", city:"Vancouver", state:"British Columbia", zip:"V5N 1R9"},
+  "Project 24 Garden Apartments": {clientId:"50240397", clientName:"b06641 Project 24 Garden Apartments Ltd.", street1:"1503-1591 North Grandview Highway", city:"Vancouver", state:"BC", zip:"V5N 1N3"},
+  "Unit 314 8600 Park Road, Richmond": {clientId:"92679643", clientName:"B09490  Unit 314  8600 Park Road, Richmond.", street1:"8600 Park Road", city:"Richmond", state:"British Columbia", zip:"V6Y 2M1"},
+  "Telford C/o Catalyst Cummunity Developments S": {clientId:"113964340", clientName:"0493  Telford  C/o Catalyst Cummunity Developments Society.", street1:"6521 Telford Avenue", city:"Burnaby", state:"British Columbia", zip:"V5H 0K8"},
+  "Creelman Avenue, Vancouver": {clientId:"141002667", clientName:"B09927  1965 Creelman Avenue, Vancouver", street1:"1965 Creelman Avenue", city:"Vancouver", state:"British Columbia", zip:"V6J 1C1"},
+  "129 Montgomery Street, Coquitlam": {clientId:"94350455", clientName:"B09911   129 Montgomery Street, Coquitlam", street1:"129 Montgomery Street", city:"Coquitlam", state:"British Columbia", zip:"V3K 5E3"},
+  "2906 Mount Seymour Parkway, North Vancouver": {clientId:"106601336", clientName:"B09551 - 2906 Mount Seymour Parkway, North Vancouver", street1:"2906 Mount Seymour Parkway", city:"North Vancouver", state:"British Columbia", zip:"V7H 1H7"},
+  "Stainsbury Development Limited Partnership": {clientId:"73141294", clientName:"Stainsbury Development Limited Partnership", street1:"320 Granville Street", city:"Vancouver", state:"British Columbia", zip:"V6B 0G5"},
+  "Steve Adrian": {clientId:"134367691", clientName:"Steve Adrian", street1:"100 Park Royal South", city:"West Vancouver", state:"British Columbia", zip:"V7T 1A2"},
+  "Strata Plan NW 2370 The Terraces": {clientId:"50587402", clientName:"Strata Plan NW 2370 The Terraces", street1:"5335 East Hastings Street", city:"Burnaby", state:"British Columbia", zip:"V5B 1P6"},
+  "Nelson at the Park": {clientId:"84029639", clientName:"B06638 Nelson at the Park", street1:"2077 Nelson Street", city:"Vancouver", state:"British Columbia", zip:"V6G 2Y2"},
+  "Minton": {clientId:"50239945", clientName:"6627 Minton", street1:"1540 Davie Street", city:"Vancouver", state:"British Columbia", zip:"V6G 1V7"},
+  "Malibu Apartments": {clientId:"50239821", clientName:"6608 Malibu Apartments", street1:"1434 Davie Street", city:"Vancouver", state:"British Columbia", zip:"V6G 1V4"},
+  "Granville West": {clientId:"74556535", clientName:"B00018    Granville West", street1:"1770 West 12th Avenue", city:"Vancouver", state:"British Columbia", zip:"V6J 2E6"},
+  "504 - 500 West 10th Avenue, Vancouver": {clientId:"137773936", clientName:"B09185  504 - 500 West 10th Avenue, Vancouver", street1:"500 West 10th Avenue", city:"Vancouver", state:"British Columbia", zip:"V5Z 4P1"},
+  "Vine Street Apartments": {clientId:"50239506", clientName:"5080 Vine Street Apartments", street1:"2198 Vine Street", city:"Vancouver", state:"British Columbia", zip:"V6K 3K2"},
+  "Landmark": {clientId:"101230892", clientName:"B00022 Landmark", street1:"560 Nicola Street", city:"Vancouver", state:"British Columbia", zip:"V6G"},
+  "Heatherlea Apartments": {clientId:"50239527", clientName:"5100 Heatherlea Apartments", street1:"1406 Laburnum Street", city:"Vancouver", state:"British Columbia", zip:"V6J 3W3"},
+  "Timberland l": {clientId:"137772911", clientName:"Timberland l", street1:"144 Saint Georges Avenue", city:"North Vancouver", state:"British Columbia", zip:"V7L 1B3"},
+  "LM Stratford Wynd Homes LP c/o Hunter McLeod ": {clientId:"98766542", clientName:"LM Stratford Wynd Homes LP c/o Hunter McLeod Realty Corp.", street1:"1145 Inlet Street", city:"Coquitlam", state:"British Columbia", zip:"V3B 6G1"},
+  "Marisha and Jay": {clientId:"133916171", clientName:"Marisha and Jay", street1:"12225 202 Street", city:"Maple Ridge", state:"British Columbia", zip:"V2X 8X6"},
+  "Nakoma Club": {clientId:"93438354", clientName:"Nakoma Club", street1:"1137 Kensal Place", city:"Coquitlam", state:"British Columbia", zip:"V3B 6E8"},
+  "Unit 1406 - 610 Granville Street, Vancouver": {clientId:"84709831", clientName:"B10080  Unit 1406 - 610 Granville Street, Vancouver", street1:"610 Granville Street", city:"Vancouver", state:"British Columbia", zip:"V6C 3T3"},
+  "Silverlynn Apartments": {clientId:"93547374", clientName:"B00021  Silverlynn Apartments", street1:"1335 27th Street", city:"North Vancouver", state:"British Columbia", zip:"V7J 1S6"},
+  "Parker Lane": {clientId:"50239903", clientName:"6611 Parker Lane", street1:"975 Chilco Street", city:"Vancouver", state:"British Columbia", zip:""},
+  "Hemlock Heights": {clientId:"50229975", clientName:"4178 Hemlock Heights", street1:"2555 Hemlock Street", city:"Vancouver", state:"British Columbia", zip:"V6H 2V2"},
+  "Jack Barr": {clientId:"61086280", clientName:"Jack Barr", street1:"1655 Angus Drive,", city:"Vancouver", state:"British Columbia", zip:"V6J 4H2"},
+  "Tammy Wu": {clientId:"103244942", clientName:"Tammy  Wu", street1:"750 West 12th Avenue", city:"Vancouver", state:"British Columbia", zip:"V5Z 0A3"},
+  "Riquelme & Associates": {clientId:"78827837", clientName:"Riquelme & Associates", street1:"5623 Imperial Street", city:"Burnaby", state:"British Columbia", zip:"V5J 1G1"},
+  "Habitat Property Management ITF The Columbia": {clientId:"50469323", clientName:"Habitat Property Management Ltd ITF The Columbia", street1:"268 West King Edward Avenue", city:"Vancouver", state:"British Columbia", zip:"V5Y 2J2"},
+  "Jacqueline Alder": {clientId:"101016410", clientName:"Jacqueline  Alder", street1:"6328 Hawthorn Lane", city:"Vancouver", state:"British Columbia", zip:"V6T 2J6"},
+  "American Investment": {clientId:"50390819", clientName:"American Investment Ltd", street1:"1687 West Broadway", city:"Vancouver", state:"British Columbia", zip:"V6J 1X2"},
+  "950 West Broadway": {clientId:"64400215", clientName:"B00012 950 West Broadway", street1:"950 West Broadway", city:"Vancouver", state:"British Columbia", zip:"V5Z 1K7"},
+  "Unit 2202 - 1010 Richard Street, Vancouver": {clientId:"94731424", clientName:"B08719  Unit 2202 - 1010 Richard Street, Vancouver", street1:"1010 Richards Street", city:"Vancouver", state:"British Columbia", zip:"V6B 1G2"},
+  "Don Ritchie": {clientId:"61086307", clientName:"Don  Ritchie", street1:"1778 Cedar Crescent", city:"Vancouver", state:"British Columbia", zip:"V6J 2R2"},
+  "Fair Haven Homes Vivian Apartments Society": {clientId:"75972635", clientName:"Fair Haven Homes Vivian Apartments Society", street1:"6465 Vivian Street", city:"Vancouver", state:"British Columbia", zip:"V5S 2T2"},
+  "Unit 303 - 1265 Barclay Street": {clientId:"88227938", clientName:"B09946  Unit 303 - 1265 Barclay Street", street1:"1265 Barclay Street", city:"Vancouver", state:"British Columbia", zip:"V6E 1H5"},
+  "VASHM Ashley Mar Co-op": {clientId:"126375259", clientName:"VASHM  Ashley Mar Co-op", street1:"8460 Ash Street", city:"Vancouver", state:"British Columbia", zip:"V6P 0M6"},
+  "Unit 101 - 290 Francis Way, New Westminister": {clientId:"84757274", clientName:"B09063  Unit 101 - 290 Francis Way, New Westminister.", street1:"290 Francis Way", city:"New Westminster", state:"British Columbia", zip:"V3L 0C4"},
+  "Loz Takoz": {clientId:"77531010", clientName:"Loz Takoz", street1:"2929 Barnet Highway", city:"Coquitlam", state:"British Columbia", zip:"V3B 5R5"},
+  "Coromandel Cambie 59 BT": {clientId:"101384013", clientName:"Coromandel Cambie 59 BT Ltd. C/O Deloitte Restructuring Inc.", street1:"410 West Georgia Street", city:"Vancouver", state:"British Columbia", zip:"V6B 1Z3"},
+  "LMS 675 UBC": {clientId:"126506903", clientName:"LMS 675 UBC", street1:"5760 Hampton Place", city:"University Endowment Lands", state:"British Columbia", zip:"V6T 2G1"},
+  "Davie Street, Vancouver": {clientId:"126377918", clientName:"B00030 1495 Davie Street, Vancouver", street1:"1495 Davie Street", city:"Vancouver", state:"British Columbia", zip:"V6G 1V5"},
+  "375 West 10th Ave, Vancouver": {clientId:"126375537", clientName:"B00031 375 West 10th Ave, Vancouver", street1:"375 West 10th Avenue", city:"Vancouver", state:"British Columbia", zip:"V5Y 3V1"},
+  "Alder 3625 Sawmill Cres, Vancouver": {clientId:"107243893", clientName:"0427 Alder  3625 Sawmill Cres, Vancouver", street1:"3625 East Sawmill Crescent", city:"Vancouver", state:"British Columbia", zip:"V5S 0E6"},
+  "#b09927 1961 Creelman Ave. Vancouver": {clientId:"90151970", clientName:"#b09927 1961 Creelman Ave. Vancouver", street1:"1961 Creelman Avenue", city:"Vancouver", state:"British Columbia", zip:"V6J 1B8"},
+  "KH 27 Holding Inc. dba Deville Coffee Waterfr": {clientId:"67792365", clientName:"KH 27 Holding Inc. dba Deville Coffee Waterfront", street1:"325 Seymour Street", city:"Vancouver", state:"British Columbia", zip:"V6B 5A6"},
+  "Inverness Street, Vancouver": {clientId:"117291142", clientName:"B09843 4025 Inverness Street, Vancouver", street1:"4025 Inverness Street", city:"Vancouver", state:"British Columbia", zip:"V5V 4W6"},
+  "#b07485 60-323 Jervis St. Van": {clientId:"138989787", clientName:"#b07485 60-323 Jervis St. Van", street1:"323 Jervis Street", city:"Vancouver", state:"British Columbia", zip:"V6C 3P8"},
+  "#304-5189 Cambie Street": {clientId:"137146032", clientName:"b10121 #304-5189 Cambie Street", street1:"5189 Cambie Street", city:"Vancouver", state:"British Columbia", zip:"V5Z 0J4"},
+  "#10340 140th street Surrey": {clientId:"137878929", clientName:"b09484 #10340 140th street Surrey", street1:"140 Street", city:"Surrey", state:"British Columbia", zip:""},
+  "Johnny Barone": {clientId:"141346206", clientName:"Johnny Barone", street1:"9755 180 Street", city:"Surrey", state:"British Columbia", zip:"V4N 4V9"},
+  "Charis": {clientId:"128419421", clientName:"Charis", street1:"175 4th Street East", city:"North Vancouver", state:"British Columbia", zip:"V7L 1H8"},
+  "6333 Silver Ave, Burnaby": {clientId:"130770809", clientName:"B09588 1906 - 6333 Silver Ave, Burnaby", street1:"6333 Silver Avenue", city:"Burnaby", state:"British Columbia", zip:"V5H 0C3"},
+  "6538 Nelson Avenue": {clientId:"137134913", clientName:"4205 - 6538 Nelson Avenue", street1:"4205 - 6538 Nelson Avenue", city:"Burnaby", state:"BC", zip:"V5H 2P4"},
+  "1111 Alberni St": {clientId:"140760520", clientName:"1803- 1111 Alberni St", street1:"1111 Alberni Street", city:"Vancouver", state:"British Columbia", zip:"V6E 0A8"},
+  "Unit 2104 - 1010 Richard Street, Vancouver": {clientId:"144846733", clientName:"B09289  Unit 2104 - 1010 Richard Street, Vancouver", street1:"1010 Richards Street", city:"Vancouver", state:"British Columbia", zip:"V6B 2E6"},
+  "#1609 - 455 SW Marine Drive Vancouver": {clientId:"136097936", clientName:"b08480 #1609 - 455 SW Marine Drive Vancouver", street1:"455 Southwest Marine Drive", city:"Vancouver", state:"British Columbia", zip:"V5X 0H3"},
+  "Gabrielle Affleck": {clientId:"127737400", clientName:"Gabrielle Affleck", street1:"2268 West Broadway", city:"Vancouver", state:"British Columbia", zip:"V6K 0B2"},
+  "Reilly Apartments": {clientId:"146061779", clientName:"Reilly Apartments", street1:"1185 Haro Street", city:"Vancouver", state:"British Columbia", zip:"V6E 1C9"},
+  "Rafiat": {clientId:"126089836", clientName:"Rafiat", street1:"7501 Cumberland Street", city:"Burnaby", state:"British Columbia", zip:"V3N"},
+  "Unit 403 - 189 National Ave, Vancouver": {clientId:"146062289", clientName:"B09061  Unit 403 - 189 National Ave, Vancouver", street1:"189 National Avenue", city:"Vancouver", state:"British Columbia", zip:"V6A 4L8"},
+  "Fullerton Avenue, North Vancouver": {clientId:"137000413", clientName:"B09234 2012 Fullerton Avenue, North Vancouver", street1:"2012 Fullerton Avenue", city:"North Vancouver", state:"British Columbia", zip:"V7P 3E3"},
+  "Unit 2602 - 717 Jervis Street, Vancouver": {clientId:"127982075", clientName:"B08771 Unit 2602 - 717 Jervis Street, Vancouver", street1:"717 Jervis Street", city:"Vancouver", state:"British Columbia", zip:"V6E 4L5"},
+  "1480 Howe Street, Vancouver": {clientId:"129832746", clientName:"B09005 2706 - 1480 Howe Street, Vancouver", street1:"1480 Howe Street", city:"Vancouver", state:"British Columbia", zip:"V6Z 0G5"},
+  "Unit 406 - 1028 Barclay Street, Vancouver": {clientId:"142911394", clientName:"B08765 Unit 406 - 1028 Barclay Street, Vancouver", street1:"1028 Barclay Street", city:"Vancouver", state:"British Columbia", zip:"V6E 0B1"},
+  "13308 Central Avenue, Surrey": {clientId:"140441968", clientName:"B08565  1107- 13308 Central Avenue, Surrey", street1:"13308 Central Avenue", city:"Surrey", state:"British Columbia", zip:"V3T 0M4"},
+  "765 Burrard Street, Vancouver": {clientId:"129312300", clientName:"B07866 765 Burrard Street, Vancouver", street1:"765 Burrard Street", city:"Vancouver", state:"British Columbia", zip:"V6Z 1X6"},
+  "221A Street, Langley": {clientId:"139941670", clientName:"B00028 5068 221A Street, Langley", street1:"5068 221A Street", city:"Langley", state:"British Columbia", zip:"V2Y 3V9"},
+  "301 - 128 W. 6th Avenue Vancouver": {clientId:"144254064", clientName:"301 - 128 W. 6th Avenue Vancouver", street1:"301 - 128 W. 6th Avenue Vancouver", city:"Vancouver", state:"BC", zip:"V5Y 1K6"},
+  "6538 Nelson Avenue,Burnaby": {clientId:"137559481", clientName:"B08635  4205 - 6538 Nelson Avenue,Burnaby", street1:"6538 Nelson Avenue", city:"Burnaby", state:"British Columbia", zip:"V5H 0G5"},
+  "Unit 2205 - 555 Jervis Street, Vancouver": {clientId:"133685644", clientName:"B08570 Unit 2205 - 555 Jervis Street, Vancouver", street1:"555 Jervis Street", city:"Vancouver", state:"British Columbia", zip:"V6C 3P8"},
+  "Unit 2108 - 938 Smith Street": {clientId:"133106524", clientName:"B08669 Unit 2108 - 938 Smith Street.", street1:"938 Smithe Street", city:"Vancouver", state:"British Columbia", zip:"V6Z 3H8"},
+  "902-1030 W. Broadway, Vancouver": {clientId:"136207288", clientName:"B10047 902-1030 W. Broadway, Vancouver", street1:"1030 West Broadway", city:"Vancouver", state:"British Columbia", zip:"V6H 4J5"},
+  "Hennessy House VR2709": {clientId:"139382101", clientName:"Hennessy House VR2709.", street1:"1633 West 10th Avenue", city:"Vancouver", state:"British Columbia", zip:"V6J 2A2"},
+  "Geoff": {clientId:"134697172", clientName:"Geoff", street1:"129 Montgomery Street", city:"Coquitlam", state:"British Columbia", zip:"V3K 5E3"},
+  "Dan": {clientId:"127329428", clientName:"Dan", street1:"1035 Connaught Drive", city:"Vancouver", state:"British Columbia", zip:"V6H 2G7"},
+  "Francisco Javier Montenegro": {clientId:"128530344", clientName:"Francisco Javier Montenegro", street1:"741 Anskar Court", city:"Coquitlam", state:"British Columbia", zip:"V3J 0N3"},
+  "Dunav Property Services": {clientId:"139834983", clientName:"Dunav Property Services", street1:"8150 207 Street", city:"Langley Township", state:"British Columbia", zip:"V2Y 4J5"},
+  "Deloitte": {clientId:"95803419", clientName:"Deloitte", street1:"7510 Cambie Street", city:"Vancouver", state:"British Columbia", zip:"V6P 3H7"},
+  "BCS2702 - 101 - 290 Francis Way, new Westmins": {clientId:"135763461", clientName:"BCS2702 - 101 - 290 Francis Way, new Westminster", street1:"290 Francis Way", city:"New Westminster", state:"British Columbia", zip:"V3L 0C4"},
+  "Cordero Angie": {clientId:"129039553", clientName:"Cordero Angie", street1:"1035 Connaught Drive", city:"Vancouver", state:"British Columbia", zip:"V6H 2G7"},
+  "Unit 603 - 189 National Ave, Vancouver": {clientId:"146062836", clientName:"B09868 Unit 603 - 189 National Ave, Vancouver", street1:"189 National Avenue", city:"Vancouver", state:"British Columbia", zip:"V6A 4L8"},
+  "Mehernaz": {clientId:"134693695", clientName:"Mehernaz", street1:"4429 Prospect Road", city:"North Vancouver", state:"British Columbia", zip:"V7N 3L8"},
+  "LM Precidia Homes LP c/o Hunter McLeod Realty": {clientId:"129834142", clientName:"LM Precidia Homes LP c/o Hunter McLeod Realty Corp", street1:"689 Whiting Way", city:"Coquitlam", state:"British Columbia", zip:"V3J 0S3"},
+  "Ken Hum": {clientId:"142621506", clientName:"Ken Hum", street1:"737 West 60th Avenue", city:"Vancouver", state:"British Columbia", zip:"V6P 2A1"},
+  "Mika": {clientId:"142639848", clientName:"Mika", street1:"REF# B08765 unit 406 - 1028 Barclay St, Vancouver -", city:"Vancouver", state:"BC", zip:"V6E 0B1"},
+  "West Hampstead Windows LMS675": {clientId:"131803612", clientName:"West Hampstead Windows LMS675", street1:"Hampton Place", city:"University Endowment Lands", state:"British Columbia", zip:"V6T"},
+  "#1608-777 Richards Street Vancouver": {clientId:"136109412", clientName:"b09191 #1608-777 Richards Street Vancouver", street1:"777 Richards Street", city:"Vancouver", state:"British Columbia", zip:"V6B 0M6"},
+  "Sylvia House - Homer St": {clientId:"56370365", clientName:"Sylvia House Inc.", street1:"Hamilton street and Helmcken", city:"Vancouver", state:"BC", zip:"V6J-1H4"},
+  "Sylvia House - W 2nd Ave": {clientId:"61214836", clientName:"Sylvia House Inc.", street1:"1672 West 2nd Avenue", city:"Vancouver", state:"British Columbia", zip:"V6J 1H4"},
+  "Hunter Mcleod (main)": {clientId:"58899011", clientName:"Hunter Mcleod Realty Corp.", street1:"621 12th Street", city:"New Westminster", state:"British Columbia", zip:"V3M 4J5"},
+  "Hunter Mcleod - Railway St": {clientId:"63124117", clientName:"Hunter Mcleod Realty Corp.", street1:"395 Railway Street", city:"Vancouver", state:"British Columbia", zip:"V6A 1A4"},
+  "Leader Property - W 11th Ave": {clientId:"50470231", clientName:"Leader Property Maintenance", street1:"3929 West 11th Avenue", city:"Vancouver", state:"British Columbia", zip:"V6R 2L1"},
+  "Leader Property - St George St": {clientId:"110195611", clientName:"Leader Property Maintenance", street1:"6161 Saint George Street", city:"Vancouver", state:"British Columbia", zip:"V5W 3W7"}
+};
+const REGULARS = Object.keys(REGULARS_INFO);
+
+let selectedSite = null;
+let entries = JSON.parse(localStorage.getItem('diego_job_entries') || '[]');
+
+const siteGrid = document.getElementById('siteGrid');
+SITES.forEach(site => {
+  const btn = document.createElement('button');
+  btn.className = 'site-btn';
+  btn.textContent = site;
+  btn.onclick = () => selectSite(site, btn);
+  siteGrid.appendChild(btn);
+});
+const otherBtn = document.createElement('button');
+otherBtn.className = 'site-btn other-btn';
+otherBtn.textContent = '+ Other / new building';
+otherBtn.onclick = () => selectSite('OTHER', otherBtn);
+siteGrid.appendChild(otherBtn);
+
+const otherInput = document.getElementById('otherInput');
+const unitField = document.getElementById('unitField');
+const addressField = document.getElementById('addressField');
+const taskDesc = document.getElementById('taskDesc');
+const laborField = document.getElementById('laborField');
+const materialsField = document.getElementById('materialsField');
+const saveBtn = document.getElementById('saveBtn');
+const toast = document.getElementById('toast');
+
+function selectSite(site, btnEl) {
+  document.querySelectorAll('.site-btn').forEach(b => b.classList.remove('selected'));
+  document.querySelectorAll('.search-result-btn').forEach(b => b.classList.remove('selected'));
+  searchInput.value = '';
+  searchResults.innerHTML = '';
+  btnEl.classList.add('selected');
+  selectedSite = site;
+  if (site === 'OTHER') {
+    otherInput.classList.add('shown');
+    otherInput.focus();
+    addressField.value = '';
+    addressField.placeholder = 'Type the address for this job';
+  } else {
+    otherInput.classList.remove('shown');
+    otherInput.value = '';
+    fillAddressFor(site);
+  }
+  validateForm();
+}
+
+function fillAddressFor(site) {
+  const meta = SITE_INFO[site] || REGULARS_INFO[site];
+  if (meta) {
+    addressField.value = [meta.street1, meta.city].filter(Boolean).join(', ');
+  } else {
+    addressField.value = '';
+  }
+}
+
+function selectFromSearch(site, btnEl) {
+  document.querySelectorAll('.site-btn').forEach(b => b.classList.remove('selected'));
+  otherInput.classList.remove('shown');
+  otherInput.value = '';
+  document.querySelectorAll('.search-result-btn').forEach(b => b.classList.remove('selected'));
+  btnEl.classList.add('selected');
+  selectedSite = site;
+  fillAddressFor(site);
+  validateForm();
+}
+
+const searchInput = document.getElementById('searchInput');
+const searchResults = document.getElementById('searchResults');
+searchInput.addEventListener('input', () => {
+  const q = searchInput.value.trim().toLowerCase();
+  searchResults.innerHTML = '';
+  if (!q) return;
+  const matches = REGULARS.filter(r => r.toLowerCase().includes(q)).slice(0, 6);
+  matches.forEach(name => {
+    const btn = document.createElement('button');
+    btn.className = 'search-result-btn';
+    btn.textContent = name;
+    btn.onclick = () => selectFromSearch(name, btn);
+    searchResults.appendChild(btn);
+  });
+  if (matches.length === 0) {
+    const hint = document.createElement('div');
+    hint.className = 'search-hint';
+    hint.textContent = "No match — use \"+ Other / new building\" above instead.";
+    searchResults.appendChild(hint);
+  }
+});
+
+function getFinalSite() {
+  if (selectedSite === 'OTHER') return otherInput.value.trim();
+  return selectedSite;
+}
+
+let currentTasks = [];
+
+function validateForm() {
+  const site = getFinalSite();
+  const desc = taskDesc.value.trim();
+  document.getElementById('addTaskBtn').disabled = !desc;
+  saveBtn.disabled = !(site && (desc || currentTasks.length > 0));
+}
+
+[otherInput, taskDesc, unitField, laborField, materialsField].forEach(el => {
+  el.addEventListener('input', validateForm);
+});
+
+function showToast(msg) {
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 1400);
+}
+
+function renderQueuedTasks() {
+  const wrap = document.getElementById('queuedTasksWrap');
+  const list = document.getElementById('queuedTasksList');
+  document.getElementById('taskCount').textContent = currentTasks.length;
+  if (currentTasks.length === 0) {
+    wrap.style.display = 'none';
+    return;
+  }
+  wrap.style.display = 'block';
+  list.innerHTML = '';
+  currentTasks.forEach((t, i) => {
+    const div = document.createElement('div');
+    div.className = 'queued-task';
+    let priceBits = [];
+    if (t.labor) priceBits.push('Labor $' + t.labor);
+    if (t.materials) priceBits.push('Materials $' + t.materials);
+    div.innerHTML = `
+      <div class="qtext">${escapeHtml(t.desc)}${priceBits.length ? `<div class="qprice">${priceBits.join(' · ')}</div>` : ''}</div>
+      <button class="qremove" data-i="${i}">Remove</button>
+    `;
+    list.appendChild(div);
+  });
+  list.querySelectorAll('.qremove').forEach(btn => {
+    btn.onclick = () => {
+      currentTasks.splice(parseInt(btn.dataset.i), 1);
+      renderQueuedTasks();
+      validateForm();
+    };
+  });
+}
+
+document.getElementById('addTaskBtn').onclick = () => {
+  const desc = taskDesc.value.trim();
+  if (!desc) return;
+  currentTasks.push({
+    desc,
+    labor: laborField.value.trim(),
+    materials: materialsField.value.trim()
+  });
+  taskDesc.value = '';
+  laborField.value = '';
+  materialsField.value = '';
+  renderQueuedTasks();
+  showToast('Task added — log the next one, or Save Visit if that\'s everything');
+  validateForm();
+};
+
+function clearForm() {
+  document.querySelectorAll('.site-btn').forEach(b => b.classList.remove('selected'));
+  document.querySelectorAll('.search-result-btn').forEach(b => b.classList.remove('selected'));
+  searchInput.value = '';
+  searchResults.innerHTML = '';
+  selectedSite = null;
+  otherInput.classList.remove('shown');
+  otherInput.value = '';
+  unitField.value = '';
+  addressField.value = '';
+  addressField.placeholder = 'Fills in automatically once you pick a building';
+  taskDesc.value = '';
+  laborField.value = '';
+  materialsField.value = '';
+  currentTasks = [];
+  renderQueuedTasks();
+  validateForm();
+}
+
+document.getElementById('clearBtn').onclick = clearForm;
+
+document.getElementById('saveBtn').onclick = () => {
+  const site = getFinalSite();
+  const unit = unitField.value.trim();
+  const desc = taskDesc.value.trim();
+  const labor = laborField.value.trim();
+  const materials = materialsField.value.trim();
+  const address = addressField.value.trim();
+
+  // if there's an unsaved task still sitting in the fields, fold it in as the last task
+  const tasks = currentTasks.slice();
+  if (desc) tasks.push({ desc, labor, materials });
+
+  if (!site || tasks.length === 0) return;
+
+  const meta = SITE_INFO[site] || REGULARS_INFO[site] || null;
+  // address field wins if Diego edited it; city/state/zip stay as the known default either way (safer than risking a blank field on import)
+  const finalStreet = address || (meta ? meta.street1 : '');
+
+  entries.push({
+    site, unit, tasks,
+    clientId: meta ? meta.clientId : '',
+    clientName: meta ? meta.clientName : '',
+    street1: finalStreet,
+    city: meta ? meta.city : '',
+    state: meta ? meta.state : '',
+    zip: meta ? meta.zip : '',
+    addressEdited: !!address && meta && address !== [meta.street1, meta.city].filter(Boolean).join(', '),
+    isKnownClient: !!meta,
+    time: new Date().toISOString()
+  });
+  localStorage.setItem('diego_job_entries', JSON.stringify(entries));
+  updateCounts();
+  showToast(`Saved — ${tasks.length} task${tasks.length > 1 ? 's' : ''} on this visit`);
+  clearForm();
+};
+
+function updateCounts() {
+  document.getElementById('countBadge').textContent = entries.length;
+  document.getElementById('countBadge2').textContent = entries.length;
+}
+
+function renderLog() {
+  const listEl = document.getElementById('logList');
+  const exportLabel = document.getElementById('exportLabel');
+  const exportBox = document.getElementById('exportBox');
+  const exportText = document.getElementById('exportText');
+
+  if (entries.length === 0) {
+    listEl.innerHTML = `<div class="empty-state">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      <p><strong>Nothing logged yet</strong></p>
+      <p>Tap "New Entry" to log your first job</p>
+    </div>`;
+    exportLabel.style.display = 'none';
+    exportBox.style.display = 'none';
+    return;
+  }
+
+  listEl.innerHTML = '';
+  entries.slice().reverse().forEach((e, revIdx) => {
+    const idx = entries.length - 1 - revIdx;
+    const card = document.createElement('div');
+    card.className = 'log-card';
+    const time = new Date(e.time).toLocaleTimeString([], {hour: 'numeric', minute: '2-digit'});
+    const tasksHtml = e.tasks.map(t => {
+      let priceBits = [];
+      if (t.labor) priceBits.push('Labor $' + escapeHtml(t.labor));
+      if (t.materials) priceBits.push('Materials $' + escapeHtml(t.materials));
+      return `<div class="desc">${escapeHtml(t.desc)}${priceBits.length ? `<div class="task-price">${priceBits.join(' · ')}</div>` : ''}</div>`;
+    }).join('');
+    card.innerHTML = `
+      <div class="top">
+        <div class="client">${escapeHtml(e.site)} ${e.isKnownClient ? '<span class="known-badge">✓ matched</span>' : '<span class="new-badge">new</span>'}${e.addressEdited ? '<span class="new-badge">address edited</span>' : ''}</div>
+        ${e.unit ? `<div class="unit">Unit ${escapeHtml(e.unit)}</div>` : ''}
+      </div>
+      ${tasksHtml}
+      <div class="meta">
+        <span>${time}${e.tasks.length > 1 ? ' · ' + e.tasks.length + ' tasks' : ''}</span>
+        <button class="delete-btn" data-idx="${idx}">Delete</button>
+      </div>
+    `;
+    listEl.appendChild(card);
+  });
+
+  listEl.querySelectorAll('.delete-btn').forEach(btn => {
+    btn.onclick = () => {
+      entries.splice(parseInt(btn.dataset.idx), 1);
+      localStorage.setItem('diego_job_entries', JSON.stringify(entries));
+      updateCounts();
+      renderLog();
+    };
+  });
+
+  exportLabel.style.display = 'block';
+  exportBox.style.display = 'block';
+  exportText.value = buildExportText();
+
+  const knownCount = entries.filter(e => e.isKnownClient).length;
+  const jobberBtn = document.getElementById('jobberCsvBtn');
+  const jobberLabel = document.getElementById('jobberLabel');
+  if (knownCount > 0) {
+    jobberLabel.style.display = 'block';
+    jobberBtn.style.display = 'block';
+    jobberBtn.textContent = `Jobber Import CSV — ${knownCount} matched (for David)`;
+  } else {
+    jobberLabel.style.display = 'none';
+    jobberBtn.style.display = 'none';
+  }
+}
+
+function escapeHtml(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+function buildExportText() {
+  return entries.map(e => {
+    let header = `JOB- ${e.site}`;
+    if (e.unit) header += ` unit ${e.unit}`;
+    header += '\n';
+    header += e.tasks.map(t => {
+      let line = t.desc;
+      if (t.labor) line += ` [Labor: $${t.labor}]`;
+      if (t.materials) line += ` [Materials: $${t.materials}]`;
+      return line;
+    }).join('\n');
+    return header;
+  }).join('\n\n');
+}
+
+function csvEscape(val) {
+  if (val === undefined || val === null) val = '';
+  val = String(val);
+  if (val.includes(',') || val.includes('"') || val.includes('\n')) {
+    val = '"' + val.replace(/"/g, '""') + '"';
+  }
+  return val;
+}
+
+function buildCsv() {
+  const headers = ['Date', 'Time', 'Client', 'Unit', 'Task #', 'Description', 'Labor $', 'Materials $'];
+  const rows = [];
+  entries.forEach(e => {
+    const d = new Date(e.time);
+    const date = d.toLocaleDateString('en-CA'); // YYYY-MM-DD, unambiguous
+    const time = d.toLocaleTimeString([], {hour: 'numeric', minute: '2-digit'});
+    e.tasks.forEach((t, i) => {
+      rows.push([date, time, e.site, e.unit || '', i + 1, t.desc, t.labor || '', t.materials || ''].map(csvEscape).join(','));
+    });
+  });
+  return headers.join(',') + '\n' + rows.join('\n');
+}
+
+document.getElementById('csvBtn').onclick = () => {
+  if (entries.length === 0) {
+    showToast('Nothing saved yet — log a job first');
+    return;
+  }
+  const csv = buildCsv();
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const dateStr = new Date().toLocaleDateString('en-CA');
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `diego_jobs_${dateStr}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('CSV downloaded — check your Files or Downloads');
+};
+
+const JOBBER_HEADERS = ["Jobber Client ID","Client Title","Client First Name","Client Last Name","Client Full Name (Display Only)","Client Company Name","Client Is a Company? (True/False)","Client Email","Client Main Phone","Client Home Phone","Client Work Phone","Client Mobile Phone","Client Fax Phone","Client Other Phone","Client SMS Enabled Phone Number","Jobber Property ID","Property Street 1","Property Street 2","Property City","Property State/Province","Property Zip/Postal Code","Property Country","Billing Street 1","Billing Street 2","Billing City","Billing State/Province","Billing Zip/Postal Code","Billing Country","Client Receives Auto Visit Reminders? (True/False)","Client Receives Auto Job Follow-ups? (True/False)","Client Receives Auto Quote Follow-ups? (True/False)","Client Receives Auto Invoice Follow-ups? (True/False)","Client Receives Auto Review Requests? (True/False)","Invoice Number","Invoice Subject","Invoice Status (Draft/Sent/Paid)","Unit #","Invoice Issued Date","Invoice Due Date","Invoice Discount Type (Unit/Percentage)","Invoice Discount Amount (Unit/Percentage)","Invoice New Tax Rate Name","Invoice New Tax Rate (Percentage)","Invoice Existing Tax Rate Name","Tax Method (Inclusive/Exclusive)","Invoice Internal Note"];
+for (let n = 1; n <= 10; n++) {
+  JOBBER_HEADERS.push(`Line Item ${n} Category (Service/Product)`, `Line Item ${n} Name`, `Line Item ${n} Description`, `Line Item ${n} Quantity`, `Line Item ${n} TOTAL Price`, `Line Item ${n} Taxable (True/False)`);
+}
+
+function buildJobberCsv() {
+  const known = entries.filter(e => e.isKnownClient);
+  const rows = known.map(e => {
+    const row = {};
+    JOBBER_HEADERS.forEach(h => row[h] = '');
+    row["Jobber Client ID"] = e.clientId;
+    row["Client Company Name"] = e.clientName;
+    row["Client Is a Company? (True/False)"] = 'TRUE';
+    row["Property Street 1"] = e.street1;
+    row["Property City"] = e.city;
+    row["Property State/Province"] = e.state;
+    row["Property Zip/Postal Code"] = e.zip;
+    row["Property Country"] = 'Canada';
+    const subjectDesc = e.tasks.map(t => t.desc).join(' / ');
+    row["Invoice Subject"] = (e.unit ? `Unit ${e.unit}. ` : '') + subjectDesc;
+    row["Invoice Status (Draft/Sent/Paid)"] = 'Draft';
+    row["Unit #"] = e.unit;
+    row["Line Item 1 Category (Service/Product)"] = 'Service';
+    row["Line Item 1 Name"] = 'Service Call';
+    row["Line Item 1 Quantity"] = '1';
+    row["Line Item 1 TOTAL Price"] = '100';
+    row["Line Item 1 Taxable (True/False)"] = 'TRUE';
+
+    let lineNum = 2;
+    e.tasks.forEach(t => {
+      if (lineNum > 10) return; // Jobber's template caps at 10 line items
+      const shortName = t.desc.length > 70 ? t.desc.slice(0, 67) + '...' : t.desc;
+      row[`Line Item ${lineNum} Category (Service/Product)`] = 'Service';
+      row[`Line Item ${lineNum} Name`] = 'Labor: ' + shortName;
+      row[`Line Item ${lineNum} Description`] = t.desc;
+      if (t.labor) {
+        row[`Line Item ${lineNum} Quantity`] = '1';
+        row[`Line Item ${lineNum} TOTAL Price`] = t.labor;
+      }
+      row[`Line Item ${lineNum} Taxable (True/False)`] = 'TRUE';
+      lineNum++;
+
+      if (t.materials && lineNum <= 10) {
+        row[`Line Item ${lineNum} Category (Service/Product)`] = 'Product';
+        row[`Line Item ${lineNum} Name`] = 'Materials';
+        row[`Line Item ${lineNum} Quantity`] = '1';
+        row[`Line Item ${lineNum} TOTAL Price`] = t.materials;
+        row[`Line Item ${lineNum} Taxable (True/False)`] = 'TRUE';
+        lineNum++;
+      }
+    });
+
+    return JOBBER_HEADERS.map(h => csvEscape(row[h])).join(',');
+  });
+  return JOBBER_HEADERS.map(csvEscape).join(',') + '\n' + rows.join('\n');
+}
+
+document.getElementById('jobberCsvBtn').onclick = () => {
+  const known = entries.filter(e => e.isKnownClient);
+  const unknownCount = entries.length - known.length;
+  if (known.length === 0) {
+    showToast('No matched clients to export yet');
+    return;
+  }
+  const csv = buildJobberCsv();
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const dateStr = new Date().toLocaleDateString('en-CA');
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `jobber_import_${dateStr}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  if (unknownCount > 0) {
+    showToast(`Downloaded ${known.length} — ${unknownCount} "new" entries need David's review separately`);
+  } else {
+    showToast(`Downloaded — all ${known.length} ready to import`);
+  }
+};
+
+// tab switching
+const entryScreen = document.getElementById('entryScreen');
+const logScreen = document.getElementById('logScreen');
+function showEntryScreen() {
+  entryScreen.classList.remove('hidden');
+  logScreen.classList.add('hidden');
+  document.getElementById('entrySaveBar').classList.remove('hidden');
+  document.getElementById('logSaveBar').classList.add('hidden');
+  document.getElementById('headerSub').textContent = "Tap a building, add the unit, say what you did.";
+  syncTabs(true);
+}
+function showLogScreen() {
+  entryScreen.classList.add('hidden');
+  logScreen.classList.remove('hidden');
+  document.getElementById('entrySaveBar').classList.add('hidden');
+  document.getElementById('logSaveBar').classList.remove('hidden');
+  document.getElementById('headerSub').textContent = "Everything you've logged, saved until you clear it.";
+  syncTabs(false);
+  renderLog();
+}
+function syncTabs(onEntryScreen) {
+  document.getElementById('tabNew').classList.toggle('active', onEntryScreen);
+  document.getElementById('tabLog').classList.toggle('active', !onEntryScreen);
+  document.getElementById('tabNew2').classList.toggle('active', onEntryScreen);
+  document.getElementById('tabLog2').classList.toggle('active', !onEntryScreen);
+}
+document.getElementById('tabNew').onclick = showEntryScreen;
+document.getElementById('tabLog').onclick = showLogScreen;
+document.getElementById('tabNew2').onclick = showEntryScreen;
+document.getElementById('tabLog2').onclick = showLogScreen;
+
+document.getElementById('copyBtn').onclick = () => {
+  if (entries.length === 0) {
+    showToast('Nothing saved yet — log a job first');
+    return;
+  }
+  const text = buildExportText();
+  const exportTextEl = document.getElementById('exportText');
+  exportTextEl.value = text;
+
+  let copied = false;
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(() => {
+        showToast('Copied — paste it into Notes');
+      }).catch(() => {
+        fallbackCopy();
+      });
+      copied = true;
+    }
+  } catch (e) {
+    copied = false;
+  }
+  if (!copied) {
+    fallbackCopy();
+  }
+
+  function fallbackCopy() {
+    exportTextEl.focus();
+    exportTextEl.select();
+    exportTextEl.setSelectionRange(0, text.length);
+    let worked = false;
+    try { worked = document.execCommand('copy'); } catch (e) { worked = false; }
+    if (worked) {
+      showToast('Copied — paste it into Notes');
+    } else {
+      showToast('Copy didn\'t work automatically — text is selected below, press and hold to copy');
+    }
+  }
+};
+
+document.getElementById('clearAllBtn').onclick = () => {
+  if (confirm('Clear everything logged today? Only do this after David has it.')) {
+    entries = [];
+    localStorage.setItem('diego_job_entries', JSON.stringify(entries));
+    updateCounts();
+    renderLog();
+  }
+};
+
+updateCounts();
+</script>
+
+</body>
+</html>
