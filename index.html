@@ -39,6 +39,15 @@
   header h1 { margin: 0; font-size: 1.15rem; font-weight: 800; letter-spacing: -0.01em; }
   header p { margin: 3px 0 0; font-size: 0.78rem; opacity: 0.85; }
 
+  .nav-tabs-sticky {
+    position: sticky; top: 0; z-index: 19;
+    background: var(--paper);
+    padding: 10px 14px 8px;
+    border-bottom: 1px solid var(--line);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+  }
+  .nav-tabs-sticky .nav-tabs { max-width: 520px; margin: 0 auto; }
+
   main { max-width: 520px; margin: 0 auto; padding: 16px 14px 100px; }
 
   .section-label {
@@ -214,13 +223,15 @@
   </div>
 </header>
 
+<div class="nav-tabs-sticky">
+  <div class="nav-tabs">
+    <button class="nav-tab active" id="tabNew">New Entry</button>
+    <button class="nav-tab" id="tabLog">Logged (<span id="countBadge">0</span>)</button>
+  </div>
+</div>
+
 <main>
   <div id="entryScreen">
-    <div class="nav-tabs">
-      <button class="nav-tab active" id="tabNew">New Entry</button>
-      <button class="nav-tab" id="tabLog">Logged (<span id="countBadge">0</span>)</button>
-    </div>
-
     <div class="section-label">Building / Client</div>
     <div class="site-grid" id="siteGrid"></div>
 
@@ -269,10 +280,6 @@
   </div>
 
   <div id="logScreen" class="hidden">
-    <div class="nav-tabs">
-      <button class="nav-tab" id="tabNew2">New Entry</button>
-      <button class="nav-tab active" id="tabLog2">Logged (<span id="countBadge2">0</span>)</button>
-    </div>
     <div id="logList"></div>
     <div class="section-label" id="exportLabel" style="display:none;">Or copy as text (for a quick message to David)</div>
     <div class="export-box" id="exportBox" style="display:none;">
@@ -712,7 +719,6 @@ document.getElementById('saveBtn').onclick = () => {
 
 function updateCounts() {
   document.getElementById('countBadge').textContent = entries.length;
-  document.getElementById('countBadge2').textContent = entries.length;
 }
 
 function renderLog() {
@@ -828,23 +834,42 @@ function buildCsv() {
   return headers.join(',') + '\n' + rows.join('\n');
 }
 
-document.getElementById('csvBtn').onclick = () => {
+async function saveFile(text, filename, mimeType) {
+  const blob = new Blob([text], { type: mimeType });
+  const file = new File([blob], filename, { type: mimeType });
+
+  // iOS Safari: use the native Share Sheet, which has a real "Save to Files" option
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try {
+      await navigator.share({ files: [file], title: filename });
+      return true;
+    } catch (e) {
+      if (e.name === 'AbortError') return false; // user cancelled the share sheet, not an error
+      // fall through to the download-link method below if share fails for another reason
+    }
+  }
+
+  // fallback: classic download link (works on desktop, older browsers)
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  return true;
+}
+
+document.getElementById('csvBtn').onclick = async () => {
   if (entries.length === 0) {
     showToast('Nothing saved yet — log a job first');
     return;
   }
   const csv = buildCsv();
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
   const dateStr = new Date().toLocaleDateString('en-CA');
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `diego_jobs_${dateStr}.csv`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-  showToast('CSV downloaded — check your Files or Downloads');
+  const saved = await saveFile(csv, `diego_jobs_${dateStr}.csv`, 'text/csv');
+  if (saved) showToast('Choose "Save to Files" to keep it on your phone');
 };
 
 const JOBBER_HEADERS = ["Jobber Client ID","Client Title","Client First Name","Client Last Name","Client Full Name (Display Only)","Client Company Name","Client Is a Company? (True/False)","Client Email","Client Main Phone","Client Home Phone","Client Work Phone","Client Mobile Phone","Client Fax Phone","Client Other Phone","Client SMS Enabled Phone Number","Jobber Property ID","Property Street 1","Property Street 2","Property City","Property State/Province","Property Zip/Postal Code","Property Country","Billing Street 1","Billing Street 2","Billing City","Billing State/Province","Billing Zip/Postal Code","Billing Country","Client Receives Auto Visit Reminders? (True/False)","Client Receives Auto Job Follow-ups? (True/False)","Client Receives Auto Quote Follow-ups? (True/False)","Client Receives Auto Invoice Follow-ups? (True/False)","Client Receives Auto Review Requests? (True/False)","Invoice Number","Invoice Subject","Invoice Status (Draft/Sent/Paid)","Unit #","Invoice Issued Date","Invoice Due Date","Invoice Discount Type (Unit/Percentage)","Invoice Discount Amount (Unit/Percentage)","Invoice New Tax Rate Name","Invoice New Tax Rate (Percentage)","Invoice Existing Tax Rate Name","Tax Method (Inclusive/Exclusive)","Invoice Internal Note"];
@@ -904,7 +929,7 @@ function buildJobberCsv() {
   return JOBBER_HEADERS.map(csvEscape).join(',') + '\n' + rows.join('\n');
 }
 
-document.getElementById('jobberCsvBtn').onclick = () => {
+document.getElementById('jobberCsvBtn').onclick = async () => {
   const known = entries.filter(e => e.isKnownClient);
   const unknownCount = entries.length - known.length;
   if (known.length === 0) {
@@ -912,20 +937,14 @@ document.getElementById('jobberCsvBtn').onclick = () => {
     return;
   }
   const csv = buildJobberCsv();
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
   const dateStr = new Date().toLocaleDateString('en-CA');
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `jobber_import_${dateStr}.csv`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-  if (unknownCount > 0) {
-    showToast(`Downloaded ${known.length} — ${unknownCount} "new" entries need David's review separately`);
-  } else {
-    showToast(`Downloaded — all ${known.length} ready to import`);
+  const saved = await saveFile(csv, `jobber_import_${dateStr}.csv`, 'text/csv');
+  if (saved) {
+    if (unknownCount > 0) {
+      showToast(`Saved ${known.length} — ${unknownCount} "new" entries need David's review separately`);
+    } else {
+      showToast(`Saved — all ${known.length} ready to import`);
+    }
   }
 };
 
@@ -952,13 +971,9 @@ function showLogScreen() {
 function syncTabs(onEntryScreen) {
   document.getElementById('tabNew').classList.toggle('active', onEntryScreen);
   document.getElementById('tabLog').classList.toggle('active', !onEntryScreen);
-  document.getElementById('tabNew2').classList.toggle('active', onEntryScreen);
-  document.getElementById('tabLog2').classList.toggle('active', !onEntryScreen);
 }
 document.getElementById('tabNew').onclick = showEntryScreen;
 document.getElementById('tabLog').onclick = showLogScreen;
-document.getElementById('tabNew2').onclick = showEntryScreen;
-document.getElementById('tabLog2').onclick = showLogScreen;
 
 document.getElementById('copyBtn').onclick = () => {
   if (entries.length === 0) {
@@ -1010,6 +1025,16 @@ document.getElementById('clearAllBtn').onclick = () => {
 };
 
 updateCounts();
+
+function positionStickyTabs() {
+  const headerEl = document.querySelector('header');
+  const tabsWrap = document.querySelector('.nav-tabs-sticky');
+  if (headerEl && tabsWrap) {
+    tabsWrap.style.top = headerEl.offsetHeight + 'px';
+  }
+}
+positionStickyTabs();
+window.addEventListener('resize', positionStickyTabs);
 </script>
 
 </body>
