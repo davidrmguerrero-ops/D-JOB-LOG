@@ -93,13 +93,6 @@
     min-height: 58px; display: flex; align-items: center;
   }
   .site-btn.selected { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-dark); }
-  .site-btn.other-btn { grid-column: 1 / -1; text-align: center; justify-content: center; color: var(--muted); }
-
-  .other-input {
-    margin-top: 8px; width: 100%; padding: 16px; font-size: 1rem; border-radius: 12px;
-    border: 2px solid var(--line); font-family: inherit; display: none;
-  }
-  .other-input.shown { display: block; }
 
   .search-wrap { margin-top: 10px; position: relative; }
   .search-input {
@@ -113,14 +106,48 @@
     text-align: left; cursor: pointer; width: 100%;
   }
   .search-result-btn.selected { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-dark); }
+  .search-result-btn.add-new { border-style: dashed; border-color: var(--accent); color: var(--accent); font-weight: 700; }
   .search-hint { font-size: 0.76rem; color: var(--muted); margin: 6px 2px 0; }
+  .selected-confirm {
+    margin-top: 8px; padding: 10px 14px; background: var(--accent-soft); border-radius: 10px;
+    font-size: 0.85rem; font-weight: 700; color: var(--accent-dark); display: flex; align-items: center; gap: 8px;
+  }
+  .selected-confirm::before { content: "✓"; font-size: 1rem; }
+  .selected-confirm { justify-content: space-between; }
+  .pin-btn {
+    background: var(--accent); color: #fff; border: none; border-radius: 20px;
+    padding: 6px 12px; font-size: 0.76rem; font-weight: 700; cursor: pointer; white-space: nowrap;
+  }
+
+  .service-call-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 14px;
+    background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+    padding: 12px 14px; margin-top: 18px;
+  }
+  .toggle-switch { position: relative; display: inline-block; width: 46px; height: 26px; flex-shrink: 0; }
+  .toggle-switch input { opacity: 0; width: 0; height: 0; }
+  .toggle-slider {
+    position: absolute; cursor: pointer; inset: 0; background: #ccc4b0; border-radius: 26px; transition: 0.2s;
+  }
+  .toggle-slider::before {
+    content: ""; position: absolute; height: 20px; width: 20px; left: 3px; bottom: 3px;
+    background: white; border-radius: 50%; transition: 0.2s;
+  }
+  .toggle-switch input:checked + .toggle-slider { background: var(--accent); }
+  .toggle-switch input:checked + .toggle-slider::before { transform: translateX(20px); }
+
+  .small-textarea {
+    width: 100%; min-height: 60px; padding: 12px 14px; font-size: 0.95rem; border-radius: 12px;
+    border: 2px solid var(--line); font-family: inherit; resize: vertical; background: var(--card);
+  }
+  .small-textarea:focus { outline: none; border-color: var(--accent); }
 
   .field-row { display: flex; gap: 10px; margin-top: 4px; }
   .field {
     flex: 1; padding: 16px; font-size: 1.1rem; border-radius: 12px;
     border: 2px solid var(--line); font-family: inherit; background: var(--card);
   }
-  .field:focus, .other-input:focus, textarea:focus { outline: none; border-color: var(--accent); }
+  .field:focus, textarea:focus { outline: none; border-color: var(--accent); }
 
   textarea#taskDesc {
     width: 100%; min-height: 120px; padding: 16px; font-size: 1.05rem; border-radius: 12px;
@@ -235,12 +262,12 @@
     <div class="section-label">Building / Client</div>
     <div class="site-grid" id="siteGrid"></div>
 
+    <div class="section-label">Not one of those?</div>
     <div class="search-wrap" id="searchWrap">
-      <input type="text" class="search-input" id="searchInput" placeholder="Not one of those? Search other regulars…" autocomplete="off" autocorrect="off">
+      <input type="text" class="search-input" id="searchInput" placeholder="Type a building or client name…" autocomplete="off" autocorrect="off">
       <div class="search-results" id="searchResults"></div>
+      <div class="selected-confirm" id="selectedConfirm" style="display:none;"></div>
     </div>
-
-    <input type="text" class="other-input" id="otherInput" placeholder="Type the client/building name">
 
     <div class="section-label">Unit # (leave blank if none)</div>
     <div class="field-row">
@@ -252,6 +279,17 @@
       <input type="text" class="field" id="addressField" placeholder="Fills in automatically once you pick a building">
     </div>
 
+    <div class="service-call-row">
+      <div>
+        <div class="section-label" style="margin:0;">Service Call</div>
+        <div class="task-hint" style="margin-top:2px;">Turn off if this visit continues a job already logged (2-3 visit jobs shouldn't get charged twice)</div>
+      </div>
+      <label class="toggle-switch">
+        <input type="checkbox" id="serviceCallToggle" checked>
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+
     <div class="section-label">What did you do?</div>
     <textarea id="taskDesc" placeholder="Tap here, then tap the microphone on your keyboard and just talk. Say the room, what was broken, what you fixed."></textarea>
     <div class="mic-hint">
@@ -259,19 +297,23 @@
       <span>Use your keyboard's mic button to talk instead of typing</span>
     </div>
 
+    <div class="section-label">Labor — describe it however you want</div>
+    <textarea id="laborDescField" class="small-textarea" placeholder="Optional — how you'd describe the labor for the invoice"></textarea>
     <div class="section-label">Labor $, if you already know it</div>
     <div class="field-row">
       <input type="text" inputmode="decimal" class="field" id="laborField" placeholder="Leave blank if unsure">
     </div>
 
+    <div class="section-label">Materials — what was used</div>
+    <textarea id="materialsDescField" class="small-textarea" placeholder="Optional — e.g. 2 door hinges, silicone sealant"></textarea>
     <div class="section-label">Materials $, if you already know it</div>
     <div class="field-row">
       <input type="text" inputmode="decimal" class="field" id="materialsField" placeholder="Leave blank if unsure">
     </div>
-    <div class="price-hint">Service Call is added automatically — no need to log that part. Not sure on Labor or Materials? Leave them blank, price it later in Jobber.</div>
+    <div class="price-hint">Not sure on price? Leave it blank, price it later in Jobber.</div>
 
-    <button class="secondary" id="addTaskBtn" style="width:100%; margin-top:14px;" disabled>+ Add Another Task (same visit)</button>
-    <div class="task-hint">Did more than one thing at this building today? Add each as its own task before saving — they'll all go on one invoice, just like Diego already does it.</div>
+    <button class="secondary" id="addTaskBtn" style="width:100%; margin-top:14px;" disabled>+ Add Another Task (same visit / they asked for something extra)</button>
+    <div class="task-hint">Did more than one thing at this building today — or did they ask you to fix something extra while you were there? Add each as its own task before saving.</div>
 
     <div id="queuedTasksWrap" style="display:none;">
       <div class="section-label">Tasks on this visit (<span id="taskCount">0</span>)</div>
@@ -284,7 +326,7 @@
     <div class="section-label" id="exportLabel" style="display:none;">Or copy as text (for a quick message to David)</div>
     <div class="export-box" id="exportBox" style="display:none;">
       <textarea id="exportText" readonly></textarea>
-      <button class="secondary" id="copyBtn" style="margin-top:10px; width:100%;">Copy Text</button>
+      <button class="secondary" id="copyBtn" style="margin-top:10px; width:100%;">Copy for Diego</button>
     </div>
     <div class="section-label" id="jobberLabel" style="display:none;">Ready to import (matched clients only)</div>
     <button class="primary" id="jobberCsvBtn" style="display:none; width:100%; margin-bottom:10px;">Jobber Import CSV (for David)</button>
@@ -348,7 +390,7 @@ document.getElementById('closeHelp').onclick = () => {
 </div>
 <div class="save-bar hidden" id="logSaveBar">
   <button class="secondary" id="clearAllBtn">Clear All</button>
-  <button class="primary" id="csvBtn">Download CSV</button>
+  <button class="primary" id="csvBtn">Download CSV for Diego</button>
 </div>
 
 <div class="toast" id="toast">Saved</div>
@@ -357,23 +399,18 @@ document.getElementById('closeHelp').onclick = () => {
 const SITE_INFO = {
   "Montana": {clientId:"50238785", clientName:"4310 Montana", street1:"1160 Pendrell Street", city:"Vancouver", state:"British Columbia", zip:"V6E 1L5"},
   "Esticana": {clientId:"50229514", clientName:"4090 Esticana", street1:"1234 Barclay Street", city:"Vancouver", state:"British Columbia", zip:"V6E 1H4"},
-  "Haro St Limited Partnership": {clientId:"94379459", clientName:"1045 Haro St Limited Partnership", street1:"1045 Haro Street", city:"Vancouver", state:"British Columbia", zip:"V6E 3Z8"},
   "Aspen": {clientId:"116432459", clientName:"0492 Aspen. c/o Catalyst Cummunity Developments Society.", street1:"188 East 6th Avenue", city:"Vancouver", state:"British Columbia", zip:"V5T 0K3"},
   "EI Presidente": {clientId:"50229489", clientName:"4070 EI Presidente", street1:"1521 Burnaby Street", city:"Vancouver", state:"British Columbia", zip:"V6G 1X1"},
   "Basra Bros Investment": {clientId:"90404665", clientName:"Basra Bros Investment Ltd.", street1:"2641 East 29th Avenue", city:"Vancouver", state:"British Columbia", zip:"V5R 1V3"},
-  "Joanne Wu": {clientId:"116521242", clientName:"Joanne Wu", street1:"3360 Price Street", city:"Vancouver", state:"British Columbia", zip:"V5R 5P9"},
   "Johnston Plaza": {clientId:"71541739", clientName:"B07372    Johnston Plaza", street1:"1724 152 Street", city:"Surrey", state:"British Columbia", zip:"V4A 4N4"},
   "W8 Living": {clientId:"50390980", clientName:"B00005 W8 Living", street1:"1463 West 8th Avenue", city:"Vancouver", state:"British Columbia", zip:"V6H 0C3"},
   "Vallejo Court": {clientId:"50239308", clientName:"Vallejo Court", street1:"1009 West 10th Avenue", city:"Vancouver", state:"British Columbia", zip:"V6H 1H9"},
   "Dorchester Apartments": {clientId:"50227095", clientName:"Dorchester Apartments", street1:"170 5th Street East", city:"North Vancouver", state:"British Columbia", zip:"V7L 4L4"},
   "Sharion Apartments": {clientId:"50196347", clientName:"1339 Sharion Apartments", street1:"1339 Barclay Street", city:"Vancouver", state:"British Columbia", zip:"V6E 1H6"},
   "Camelot Place": {clientId:"50202810", clientName:"B00010 Camelot Place", street1:"6508 Silver Avenue", city:"Burnaby", state:"British Columbia", zip:"V5H 2Y4"},
-  "City View Apartments": {clientId:"50229421", clientName:"3720 City View Apartments", street1:"Unit 119 City View", city:"Vancouver", state:"British Columbia", zip:"V6E 1C8"},
   "LJ Hum": {clientId:"50471270", clientName:"LJ Hum", street1:"6692 Dow Avenue", city:"Burnaby,", state:"BC", zip:"V5H3C9"},
   "Odd Fellows Low Rental Housing Society Inc": {clientId:"68744413", clientName:"Odd Fellows Low Rental Housing Society Inc.  c/o AWM- Alliance Real State Group Ltd.", street1:"5281 Lincoln Street", city:"Vancouver", state:"British Columbia", zip:"V5R 4P5"},
-  "Mayfair Court / Wayne & National": {clientId:"74298016", clientName:"Mayfair Court / Wayne & National", street1:"8071 Ryan Road", city:"Richmond", state:"British Columbia", zip:"V7A 2E4"},
   "Oxford Manor": {clientId:"50239384", clientName:"Oxford Manor", street1:"2333 Oxford Street", city:"Vancouver", state:"British Columbia", zip:"V5L 1G5"},
-  "Devon - Cardero St / E 41st Ave": {clientId:"112812683", clientName:"Devon Properties LTD", street1:"1181 Cardero Street", city:"Vancouver", state:"BC", zip:""},
   "Devon - Davie St (West Tower)": {clientId:"112812907", clientName:"Devon Properties LTD.", street1:"1661 Davie Street", city:"Vancouver", state:"BC", zip:""},
   "Devon - Victoria Dr": {clientId:"50240468", clientName:"Devon Properties LTD", street1:"3655  Victoria Dr.", city:"Vancouver", state:"BC", zip:""},
   "7392 16th Ave (Catalyst)": {clientId:"115665634", clientName:"0442 -  7392 16th Avenue, Burnaby C/o Catalyst Cummunity Developments Society.", street1:"7392 16th Avenue", city:"Burnaby", state:"British Columbia", zip:"V3N 0K3"}
@@ -503,53 +540,74 @@ const REGULARS = Object.keys(REGULARS_INFO);
 
 let selectedSite = null;
 let entries = JSON.parse(localStorage.getItem('diego_job_entries') || '[]');
+let customClients = JSON.parse(localStorage.getItem('diego_custom_clients') || '{}');
+let pinnedFavorites = JSON.parse(localStorage.getItem('diego_pinned_favorites') || '{}');
+
+function getClientInfo(name) {
+  return SITE_INFO[name] || REGULARS_INFO[name] || pinnedFavorites[name] || null;
+}
+
+function pinToQuickList(name) {
+  if (SITES.includes(name) || pinnedFavorites[name]) return; // already pinned
+  const info = getClientInfo(name) || (customClients[name] ? { clientId:'', clientName:name, street1: customClients[name].address||'', city:'', state:'', zip:'' } : { clientId:'', clientName:name, street1:'', city:'', state:'', zip:'' });
+  pinnedFavorites[name] = info;
+  localStorage.setItem('diego_pinned_favorites', JSON.stringify(pinnedFavorites));
+  renderSiteGrid();
+  showToast(`"${name}" added to your quick list`);
+}
+
+function renderSiteGrid() {
+  siteGrid.innerHTML = '';
+  const allQuick = [...SITES, ...Object.keys(pinnedFavorites)];
+  allQuick.forEach(site => {
+    const btn = document.createElement('button');
+    btn.className = 'site-btn';
+    btn.textContent = site;
+    btn.onclick = () => selectSite(site, btn);
+    siteGrid.appendChild(btn);
+  });
+}
+
+function saveCustomClient(name) {
+  if (!customClients[name]) {
+    customClients[name] = { addedAt: new Date().toISOString() };
+    localStorage.setItem('diego_custom_clients', JSON.stringify(customClients));
+  }
+}
 
 const siteGrid = document.getElementById('siteGrid');
-SITES.forEach(site => {
-  const btn = document.createElement('button');
-  btn.className = 'site-btn';
-  btn.textContent = site;
-  btn.onclick = () => selectSite(site, btn);
-  siteGrid.appendChild(btn);
-});
-const otherBtn = document.createElement('button');
-otherBtn.className = 'site-btn other-btn';
-otherBtn.textContent = '+ Other / new building';
-otherBtn.onclick = () => selectSite('OTHER', otherBtn);
-siteGrid.appendChild(otherBtn);
+renderSiteGrid();
 
-const otherInput = document.getElementById('otherInput');
 const unitField = document.getElementById('unitField');
 const addressField = document.getElementById('addressField');
 const taskDesc = document.getElementById('taskDesc');
 const laborField = document.getElementById('laborField');
 const materialsField = document.getElementById('materialsField');
+const laborDescField = document.getElementById('laborDescField');
+const materialsDescField = document.getElementById('materialsDescField');
+const serviceCallToggle = document.getElementById('serviceCallToggle');
 const saveBtn = document.getElementById('saveBtn');
 const toast = document.getElementById('toast');
+const selectedConfirm = document.getElementById('selectedConfirm');
+
+let customClientName = null; // holds the typed name when "+ Add new" was used, since it won't be in SITE_INFO/REGULARS_INFO
 
 function selectSite(site, btnEl) {
   document.querySelectorAll('.site-btn').forEach(b => b.classList.remove('selected'));
   document.querySelectorAll('.search-result-btn').forEach(b => b.classList.remove('selected'));
   searchInput.value = '';
   searchResults.innerHTML = '';
+  selectedConfirm.style.display = 'none';
+  customClientName = null;
   btnEl.classList.add('selected');
   selectedSite = site;
-  if (site === 'OTHER') {
-    otherInput.classList.add('shown');
-    otherInput.focus();
-    addressField.value = '';
-    addressField.placeholder = 'Type the address for this job';
-  } else {
-    otherInput.classList.remove('shown');
-    otherInput.value = '';
-    fillAddressFor(site);
-  }
+  fillAddressFor(site);
   validateForm();
 }
 
 function fillAddressFor(site) {
-  const meta = SITE_INFO[site] || REGULARS_INFO[site];
-  if (meta) {
+  const meta = getClientInfo(site);
+  if (meta && meta.street1) {
     addressField.value = [meta.street1, meta.city].filter(Boolean).join(', ');
   } else {
     addressField.value = '';
@@ -558,39 +616,74 @@ function fillAddressFor(site) {
 
 function selectFromSearch(site, btnEl) {
   document.querySelectorAll('.site-btn').forEach(b => b.classList.remove('selected'));
-  otherInput.classList.remove('shown');
-  otherInput.value = '';
   document.querySelectorAll('.search-result-btn').forEach(b => b.classList.remove('selected'));
   btnEl.classList.add('selected');
   selectedSite = site;
-  fillAddressFor(site);
+  if (customClients[site]) {
+    customClientName = site;
+    addressField.value = customClients[site].address || '';
+    addressField.placeholder = 'Type the address for this job (new client — not in Jobber yet)';
+  } else {
+    customClientName = null;
+    fillAddressFor(site);
+  }
+  showSelectedConfirm(site, `Selected: ${site}`);
   validateForm();
 }
 
 const searchInput = document.getElementById('searchInput');
 const searchResults = document.getElementById('searchResults');
 searchInput.addEventListener('input', () => {
-  const q = searchInput.value.trim().toLowerCase();
+  const q = searchInput.value.trim();
+  const qLower = q.toLowerCase();
   searchResults.innerHTML = '';
+  selectedConfirm.style.display = 'none';
   if (!q) return;
-  const matches = REGULARS.filter(r => r.toLowerCase().includes(q)).slice(0, 6);
+  const allNames = [...SITES, ...REGULARS, ...Object.keys(customClients), ...Object.keys(pinnedFavorites)];
+  const matches = [...new Set(allNames)].filter(r => r.toLowerCase().includes(qLower)).slice(0, 6);
   matches.forEach(name => {
     const btn = document.createElement('button');
     btn.className = 'search-result-btn';
-    btn.textContent = name;
+    btn.textContent = name + (customClients[name] ? ' (added by you)' : '');
     btn.onclick = () => selectFromSearch(name, btn);
     searchResults.appendChild(btn);
   });
-  if (matches.length === 0) {
-    const hint = document.createElement('div');
-    hint.className = 'search-hint';
-    hint.textContent = "No match — use \"+ Other / new building\" above instead.";
-    searchResults.appendChild(hint);
-  }
+  // always offer to add exactly what was typed as a new client — this is the single path for anything not found
+  const addBtn = document.createElement('button');
+  addBtn.className = 'search-result-btn add-new';
+  addBtn.textContent = `+ Add "${q}" as a new client`;
+  addBtn.onclick = () => selectNewClient(q, addBtn);
+  searchResults.appendChild(addBtn);
 });
 
+function showSelectedConfirm(name, message) {
+  const alreadyQuick = SITES.includes(name) || !!pinnedFavorites[name];
+  selectedConfirm.innerHTML = `<span>${message}</span>` +
+    (alreadyQuick ? '' : ` <button class="pin-btn" id="pinBtn">★ Add to Quick List</button>`);
+  selectedConfirm.style.display = 'flex';
+  if (!alreadyQuick) {
+    document.getElementById('pinBtn').onclick = (e) => {
+      e.stopPropagation();
+      pinToQuickList(name);
+      showSelectedConfirm(name, message); // re-render without the pin button now that it's pinned
+    };
+  }
+}
+
+function selectNewClient(name, btnEl) {
+  document.querySelectorAll('.site-btn').forEach(b => b.classList.remove('selected'));
+  document.querySelectorAll('.search-result-btn').forEach(b => b.classList.remove('selected'));
+  btnEl.classList.add('selected');
+  selectedSite = name;
+  customClientName = name;
+  saveCustomClient(name);
+  addressField.value = '';
+  addressField.placeholder = 'Type the address for this job (new client — not in Jobber yet)';
+  showSelectedConfirm(name, `Added: ${name} (new client, saved for next time)`);
+  validateForm();
+}
+
 function getFinalSite() {
-  if (selectedSite === 'OTHER') return otherInput.value.trim();
   return selectedSite;
 }
 
@@ -603,7 +696,7 @@ function validateForm() {
   saveBtn.disabled = !(site && (desc || currentTasks.length > 0));
 }
 
-[otherInput, taskDesc, unitField, laborField, materialsField].forEach(el => {
+[taskDesc, unitField, laborField, materialsField, laborDescField, materialsDescField].forEach(el => {
   el.addEventListener('input', validateForm);
 });
 
@@ -650,11 +743,15 @@ document.getElementById('addTaskBtn').onclick = () => {
   currentTasks.push({
     desc,
     labor: laborField.value.trim(),
-    materials: materialsField.value.trim()
+    materials: materialsField.value.trim(),
+    laborDesc: laborDescField.value.trim(),
+    materialsDesc: materialsDescField.value.trim()
   });
   taskDesc.value = '';
   laborField.value = '';
   materialsField.value = '';
+  laborDescField.value = '';
+  materialsDescField.value = '';
   renderQueuedTasks();
   showToast('Task added — log the next one, or Save Visit if that\'s everything');
   validateForm();
@@ -665,15 +762,18 @@ function clearForm() {
   document.querySelectorAll('.search-result-btn').forEach(b => b.classList.remove('selected'));
   searchInput.value = '';
   searchResults.innerHTML = '';
+  selectedConfirm.style.display = 'none';
   selectedSite = null;
-  otherInput.classList.remove('shown');
-  otherInput.value = '';
+  customClientName = null;
   unitField.value = '';
   addressField.value = '';
   addressField.placeholder = 'Fills in automatically once you pick a building';
   taskDesc.value = '';
   laborField.value = '';
   materialsField.value = '';
+  laborDescField.value = '';
+  materialsDescField.value = '';
+  serviceCallToggle.checked = true;
   currentTasks = [];
   renderQueuedTasks();
   validateForm();
@@ -687,11 +787,14 @@ document.getElementById('saveBtn').onclick = () => {
   const desc = taskDesc.value.trim();
   const labor = laborField.value.trim();
   const materials = materialsField.value.trim();
+  const laborDesc = laborDescField.value.trim();
+  const materialsDesc = materialsDescField.value.trim();
   const address = addressField.value.trim();
+  const serviceCall = serviceCallToggle.checked;
 
   // if there's an unsaved task still sitting in the fields, fold it in as the last task
   const tasks = currentTasks.slice();
-  if (desc) tasks.push({ desc, labor, materials });
+  if (desc) tasks.push({ desc, labor, materials, laborDesc, materialsDesc });
 
   if (!site || tasks.length === 0) return;
 
@@ -699,10 +802,16 @@ document.getElementById('saveBtn').onclick = () => {
   // address field wins if Diego edited it; city/state/zip stay as the known default either way (safer than risking a blank field on import)
   const finalStreet = address || (meta ? meta.street1 : '');
 
+  if (customClientName && address) {
+    customClients[customClientName] = customClients[customClientName] || {};
+    customClients[customClientName].address = address;
+    localStorage.setItem('diego_custom_clients', JSON.stringify(customClients));
+  }
+
   entries.push({
-    site, unit, tasks,
+    site, unit, tasks, serviceCall,
     clientId: meta ? meta.clientId : '',
-    clientName: meta ? meta.clientName : '',
+    clientName: meta ? meta.clientName : (customClientName || site),
     street1: finalStreet,
     city: meta ? meta.city : '',
     state: meta ? meta.state : '',
@@ -748,11 +857,14 @@ function renderLog() {
       let priceBits = [];
       if (t.labor) priceBits.push('Labor $' + escapeHtml(t.labor));
       if (t.materials) priceBits.push('Materials $' + escapeHtml(t.materials));
-      return `<div class="desc">${escapeHtml(t.desc)}${priceBits.length ? `<div class="task-price">${priceBits.join(' · ')}</div>` : ''}</div>`;
+      let extra = '';
+      if (t.laborDesc) extra += `<div class="task-price">Labor: ${escapeHtml(t.laborDesc)}</div>`;
+      if (t.materialsDesc) extra += `<div class="task-price">Materials: ${escapeHtml(t.materialsDesc)}</div>`;
+      return `<div class="desc">${escapeHtml(t.desc)}${priceBits.length ? `<div class="task-price">${priceBits.join(' · ')}</div>` : ''}${extra}</div>`;
     }).join('');
     card.innerHTML = `
       <div class="top">
-        <div class="client">${escapeHtml(e.site)} ${e.isKnownClient ? '<span class="known-badge">✓ matched</span>' : '<span class="new-badge">new</span>'}${e.addressEdited ? '<span class="new-badge">address edited</span>' : ''}</div>
+        <div class="client">${escapeHtml(e.site)} ${e.isKnownClient ? '<span class="known-badge">✓ matched</span>' : '<span class="new-badge">new</span>'}${e.addressEdited ? '<span class="new-badge">address edited</span>' : ''}${e.serviceCall === false ? '<span class="new-badge">no service call</span>' : ''}</div>
         ${e.unit ? `<div class="unit">Unit ${escapeHtml(e.unit)}</div>` : ''}
       </div>
       ${tasksHtml}
@@ -800,10 +912,13 @@ function buildExportText() {
   return entries.map(e => {
     let header = `JOB- ${e.site}`;
     if (e.unit) header += ` unit ${e.unit}`;
+    if (e.serviceCall === false) header += ` [no service call - continuing job]`;
     header += '\n';
     header += e.tasks.map(t => {
       let line = t.desc;
+      if (t.laborDesc) line += ` | Labor: ${t.laborDesc}`;
       if (t.labor) line += ` [Labor: $${t.labor}]`;
+      if (t.materialsDesc) line += ` | Materials: ${t.materialsDesc}`;
       if (t.materials) line += ` [Materials: $${t.materials}]`;
       return line;
     }).join('\n');
@@ -821,14 +936,15 @@ function csvEscape(val) {
 }
 
 function buildCsv() {
-  const headers = ['Date', 'Time', 'Client', 'Unit', 'Task #', 'Description', 'Labor $', 'Materials $'];
+  const headers = ['Date', 'Time', 'Client', 'Unit', 'Service Call', 'Task #', 'Description', 'Labor Description', 'Labor $', 'Materials Description', 'Materials $'];
   const rows = [];
   entries.forEach(e => {
     const d = new Date(e.time);
     const date = d.toLocaleDateString('en-CA'); // YYYY-MM-DD, unambiguous
     const time = d.toLocaleTimeString([], {hour: 'numeric', minute: '2-digit'});
+    const svcCall = e.serviceCall === false ? 'No' : 'Yes';
     e.tasks.forEach((t, i) => {
-      rows.push([date, time, e.site, e.unit || '', i + 1, t.desc, t.labor || '', t.materials || ''].map(csvEscape).join(','));
+      rows.push([date, time, e.site, e.unit || '', svcCall, i + 1, t.desc, t.laborDesc || '', t.labor || '', t.materialsDesc || '', t.materials || ''].map(csvEscape).join(','));
     });
   });
   return headers.join(',') + '\n' + rows.join('\n');
@@ -894,19 +1010,24 @@ function buildJobberCsv() {
     row["Invoice Subject"] = (e.unit ? `Unit ${e.unit}. ` : '') + subjectDesc;
     row["Invoice Status (Draft/Sent/Paid)"] = 'Draft';
     row["Unit #"] = e.unit;
-    row["Line Item 1 Category (Service/Product)"] = 'Service';
-    row["Line Item 1 Name"] = 'Service Call';
-    row["Line Item 1 Quantity"] = '1';
-    row["Line Item 1 TOTAL Price"] = '100';
-    row["Line Item 1 Taxable (True/False)"] = 'TRUE';
 
-    let lineNum = 2;
+    let lineNum = 1;
+    if (e.serviceCall !== false) {
+      row["Line Item 1 Category (Service/Product)"] = 'Service';
+      row["Line Item 1 Name"] = 'Service Call';
+      row["Line Item 1 Quantity"] = '1';
+      row["Line Item 1 TOTAL Price"] = '100';
+      row["Line Item 1 Taxable (True/False)"] = 'TRUE';
+      lineNum = 2;
+    }
+
     e.tasks.forEach(t => {
       if (lineNum > 10) return; // Jobber's template caps at 10 line items
-      const shortName = t.desc.length > 70 ? t.desc.slice(0, 67) + '...' : t.desc;
+      const laborText = t.laborDesc || t.desc;
+      const shortName = laborText.length > 70 ? laborText.slice(0, 67) + '...' : laborText;
       row[`Line Item ${lineNum} Category (Service/Product)`] = 'Service';
       row[`Line Item ${lineNum} Name`] = 'Labor: ' + shortName;
-      row[`Line Item ${lineNum} Description`] = t.desc;
+      row[`Line Item ${lineNum} Description`] = t.laborDesc ? `${t.laborDesc}\n\n(Full note: ${t.desc})` : t.desc;
       if (t.labor) {
         row[`Line Item ${lineNum} Quantity`] = '1';
         row[`Line Item ${lineNum} TOTAL Price`] = t.labor;
@@ -914,11 +1035,14 @@ function buildJobberCsv() {
       row[`Line Item ${lineNum} Taxable (True/False)`] = 'TRUE';
       lineNum++;
 
-      if (t.materials && lineNum <= 10) {
+      if ((t.materials || t.materialsDesc) && lineNum <= 10) {
         row[`Line Item ${lineNum} Category (Service/Product)`] = 'Product';
         row[`Line Item ${lineNum} Name`] = 'Materials';
-        row[`Line Item ${lineNum} Quantity`] = '1';
-        row[`Line Item ${lineNum} TOTAL Price`] = t.materials;
+        if (t.materialsDesc) row[`Line Item ${lineNum} Description`] = t.materialsDesc;
+        if (t.materials) {
+          row[`Line Item ${lineNum} Quantity`] = '1';
+          row[`Line Item ${lineNum} TOTAL Price`] = t.materials;
+        }
         row[`Line Item ${lineNum} Taxable (True/False)`] = 'TRUE';
         lineNum++;
       }
@@ -988,7 +1112,7 @@ document.getElementById('copyBtn').onclick = () => {
   try {
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(text).then(() => {
-        showToast('Copied — paste it into Notes');
+        showToast('Copied — send it to Diego however is easiest (text, email, etc.)');
       }).catch(() => {
         fallbackCopy();
       });
@@ -1008,7 +1132,7 @@ document.getElementById('copyBtn').onclick = () => {
     let worked = false;
     try { worked = document.execCommand('copy'); } catch (e) { worked = false; }
     if (worked) {
-      showToast('Copied — paste it into Notes');
+      showToast('Copied — send it to Diego however is easiest (text, email, etc.)');
     } else {
       showToast('Copy didn\'t work automatically — text is selected below, press and hold to copy');
     }
